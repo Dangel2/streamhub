@@ -1,5 +1,5 @@
 const CONFIG = {
-  API: 'https://streamhub-activador.TU-SUBDOMINIO.workers.dev', // ← Paso 5
+  API: 'https://streamhub-activador.plain-lab-68c3.workers.dev', // ← Paso 5
   PLATFORMS: 'platforms.json',
   MAX_PROBE: 60,
   RESET_SECS: 8
@@ -202,3 +202,5 @@ function resetApp() {
   show(1);
 }
 $('#btnAgain').addEventListener('click', resetApp);
+
+
