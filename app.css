@@ -1,0 +1,52 @@
+:root{--bg1:#0b1c46;--bg2:#05070f;--card:rgba(18,26,44,.62);--line:rgba(120,150,200,.18);--txt:#e8eefc;--dim:#8ea2c4;--blue:#3b82f6;--green:#22c55e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--txt);
+background:radial-gradient(120% 70% at 50% 0%,var(--bg1) 0%,#071027 45%,var(--bg2) 100%) fixed;min-height:100%}
+#app{max-width:520px;margin:0 auto;padding:44px 16px 40px;min-height:100%;display:flex;flex-direction:column}
+.screen{display:flex;flex-direction:column;flex:1;animation:in .28s ease}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.brand{text-align:center;margin-bottom:22px}
+.logo{width:74px;height:74px;margin:0 auto 12px;border-radius:22px;display:grid;place-items:center;font-size:34px;
+background:linear-gradient(160deg,#12315f,#0a1730);box-shadow:0 0 44px rgba(59,130,246,.35),inset 0 0 0 1px rgba(150,190,255,.16)}
+.brand h1{margin:0 0 6px;font-size:26px;color:#9db2d4;letter-spacing:.2px}
+.brand p{margin:0;color:var(--dim);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;
+backdrop-filter:blur(14px);box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.steps{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+.steps i{width:46px;height:4px;border-radius:4px;background:rgba(140,170,210,.22)}
+.steps i.on{background:var(--blue)}.steps i.done{background:var(--green)}
+.lbl{display:block;font-size:12px;letter-spacing:.09em;color:#c3d2ea;margin:0 0 8px;font-weight:700}
+.row{display:flex;gap:10px;margin-bottom:16px}
+.inp{flex:1;min-width:0;background:rgba(9,16,30,.75);border:1px solid var(--line);border-radius:14px;
+color:var(--txt);padding:15px 16px;font-size:17px;outline:none}
+.inp:focus{border-color:rgba(59,130,246,.6);box-shadow:0 0 0 3px rgba(59,130,246,.16)}
+.inp::placeholder{color:#5d7091}
+.btn{border:0;border-radius:16px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:.18s;font-size:14px}
+.btn-ghost{background:rgba(255,255,255,.07);color:#dbe6f7;padding:0 16px;border:1px solid var(--line)}
+.btn-ghost:active{transform:scale(.97)}
+.btn-main{width:100%;padding:17px;background:rgba(255,255,255,.09);color:#c6d6ee;margin-top:6px}
+.btn-main:not(:disabled){background:linear-gradient(180deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 12px 28px rgba(37,99,235,.4)}
+.btn-main:disabled{opacity:.55;cursor:not-allowed}
+.help{font-size:12.5px;color:var(--dim);margin:0 0 18px;line-height:1.6}
+.help code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px;color:#a9c4ea}
+.mid{text-align:center;font-size:14.5px;margin:0 0 18px;color:#c8d6ec}
+.otp{display:flex;gap:7px;margin:0 0 18px}
+.otp input{flex:1;min-width:0;aspect-ratio:1/1.15;text-align:center;font-size:21px;font-weight:700;
+background:rgba(9,16,30,.8);border:1px solid var(--line);border-radius:13px;color:var(--txt);outline:none}
+.otp input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+.plats{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:16px;padding-right:4px}
+.plats::-webkit-scrollbar{width:6px}.plats::-webkit-scrollbar-thumb{background:rgba(140,170,210,.3);border-radius:6px}
+.plat{display:flex;align-items:center;gap:13px;padding:13px;border:1px solid var(--line);border-radius:16px;
+background:rgba(9,16,30,.6);cursor:pointer}
+.plat.sel{border-color:var(--blue);background:rgba(59,130,246,.12)}
+.plat .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:17px;color:#fff;flex:none}
+.plat b{display:block;font-size:15px}
+.plat small{color:var(--green);font-size:12px;font-weight:600}
+.plat .radio{width:22px;height:22px;border-radius:50%;border:2px solid rgba(150,180,220,.35);margin-left:auto;flex:none}
+.plat.sel .radio{border-color:var(--blue);box-shadow:inset 0 0 0 4px var(--blue)}
+.log{background:rgba(5,10,20,.7);border:1px solid var(--line);border-radius:14px;padding:14px;
+font:12px/1.6 ui-monospace,Menlo,monospace;color:#9fb6d6;white-space:pre-wrap;word-break:break-all;margin:0 0 16px;max-height:44vh;overflow:auto}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0d2417;border:1px solid #1c7a44;
+color:#c8f3d8;padding:12px 18px;border-radius:14px;font-size:13px;text-align:center;max-width:90vw;z-index:9}
+.toast.err{background:#2a1113;border-color:#7a2a2a;color:#f7d0d0}
