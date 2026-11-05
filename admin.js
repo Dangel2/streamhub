@@ -213,7 +213,7 @@ async function loadLogs() {
   const host = $('#logs');
   msg(el.logMsg, '');
   try {
-    const j = await call('/api/admin/stats'); // O endpoint de logs si lo requieres
+    const j = await call('/api/admin/stats');
     host.innerHTML = `<div class="empty">Registros sincronizados con KV y estadísticas generales. Total de usuarios: ${j.users?.length || 0}</div>`;
   } catch (e) {
     fail(el.logMsg, e);
