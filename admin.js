@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = 'https://plain-lab-68c3.tvs12202.workers.dev'; // Misma URL base del Worker
+  const API_BASE = 'https://plain-lab-68c3.tvs12202.workers.dev'; 
   let adminToken = sessionStorage.getItem('sh_admin_token') || '';
 
   const loginBox = document.getElementById('loginBox');
@@ -38,25 +38,36 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.ok === false) {
-      throw new Error(data.error || 'Error de autenticación o servidor');
+      throw new Error(data.error || 'Error de autorización');
     }
     return data;
   }
 
+  // --- LOGIN ---
   goBtn.addEventListener('click', async () => {
     const password = pwInput.value.trim();
     if (!password) return showMsg(loginMsg, 'Ingresá la contraseña', true);
     goBtn.disabled = true;
     goBtn.textContent = 'Verificando...';
     try {
-      // Intentamos autenticar guardando temporalmente el token o probando endpoint admin
-      adminToken = password; 
-      const stats = await apiAdmin('/api/admin/stats', {});
+      // 1. Petición al endpoint de Login del Worker
+      const res = await fetch(API_BASE + '/api/admin/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Contraseña incorrecta');
+      }
+      
+      // 2. Guardamos el Token HMAC recibido
+      adminToken = data.token;
       sessionStorage.setItem('sh_admin_token', adminToken);
       setAuthenticated(true);
       pwInput.value = '';
     } catch (e) {
-      showMsg(loginMsg, 'Contraseña incorrecta o sin permisos', true);
+      showMsg(loginMsg, e.message || 'Contraseña incorrecta o sin permisos', true);
       adminToken = '';
     } finally {
       goBtn.disabled = false;
@@ -68,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showMsg(el, text, isErr = false) {
     el.textContent = text;
-    el.className = 'msg show' + (isErr ? '' : '');
+    el.className = 'msg show';
     if (!isErr) {
       el.style.background = '#0d2f21';
       el.style.color = '#17b26a';
@@ -79,17 +90,17 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => el.classList.remove('show'), 5000);
   }
 
-  // Cargar estadísticas y estado
+  // --- CARGAR ESTADÍSTICAS ---
   async function loadSystemStats() {
     try {
-      const data = await apiAdmin('/api/admin/stats', {});
-      document.getElementById('sCookies').textContent = data.cookiesCount ?? 0;
-      document.getElementById('sAct').textContent = data.totalActivations ?? 0;
-      document.getElementById('sOk').textContent = data.successCount ?? 0;
-      document.getElementById('sErr').textContent = data.errorCount ?? 0;
+      const data = await apiAdmin('/api/admin/stats', {}, 'POST');
+      document.getElementById('sCookies').textContent = data.users?.length ?? 0;
+      document.getElementById('sAct').textContent = data.actHoy ?? 0;
+      document.getElementById('sOk').textContent = data.total ?? 0;
+      document.getElementById('sErr').textContent = data.nuevosHoy ?? 0;
       
       const checksEl = document.getElementById('checks');
-      checksEl.innerHTML = '<span class="chk">Cloudflare Worker Conectado</span><span class="chk">Sistema Operativo</span>';
+      checksEl.innerHTML = '<span class="chk">Cloudflare Worker Conectado</span><span class="chk">Sistema Activo</span>';
     } catch (e) {
       document.getElementById('statsMsg').textContent = 'Error al cargar métricas: ' + e.message;
     }
@@ -97,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById('reload').addEventListener('click', loadSystemStats);
 
-  // Selector de plataformas en Admin
+  // --- CARGAR SELECT DE PLATAFORMAS ---
   async function loadPlatformsDropdown() {
     try {
       const res = await fetch('platforms.json');
@@ -119,17 +130,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Guardar Cookie
+  // --- GUARDAR COOKIE EN KV DE CLOUDFLARE ---
   document.getElementById('save').addEventListener('click', async () => {
     const platform = document.getElementById('plat').value;
-    const raw = document.getElementById('raw').value.trim();
+    const cookieData = document.getElementById('raw').value.trim();
     const ckMsg = document.getElementById('ckMsg');
 
-    if (!raw) return showMsg(ckMsg, 'El contenido de la cookie está vacío', true);
+    if (!cookieData) return showMsg(ckMsg, 'El contenido de la cookie está vacío', true);
 
     try {
-      await apiAdmin('/api/admin/cookie', { platform, raw });
-      showMsg(ckMsg, '¡Cookie guardada y sincronizada correctamente!');
+      await apiAdmin('/api/admin/save-cookie', { platform, cookieData });
+      showMsg(ckMsg, '¡Cookie guardada exitosamente en Cloudflare KV!');
       document.getElementById('raw').value = '';
       loadSystemStats();
     } catch (e) {
@@ -137,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Prueba de activación desde admin
+  // --- PRUEBA DE ACTIVACIÓN ---
   document.getElementById('test').addEventListener('click', async () => {
     const platform = document.getElementById('tplat').value;
     const code = document.getElementById('tcode').value.trim();
@@ -149,9 +160,14 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       tMsg.textContent = 'Probando activación...';
       tMsg.className = 'msg show';
-      const r = await apiAdmin('/api/admin/test-activate', { platform, code });
+      
+      // Obtenemos una cookie almacenada en KV para probar
+      const cookiesRes = await apiAdmin('/api/admin/get-cookies?platform=' + platform, {}, 'GET').catch(() => ({ cookies: [] }));
+      const sampleCookie = cookiesRes.cookies?.[0]?.content || '{}';
+
+      const r = await apiAdmin('/api/admin/test', { platform, cookie: sampleCookie, code });
       tLog.innerHTML = `<pre class="log">${JSON.stringify(r, null, 2)}</pre>`;
-      showMsg(tMsg, r.ok ? '¡Prueba de activación exitosa!' : 'La activación falló, revisá los logs.');
+      showMsg(tMsg, r.ok ? '¡Prueba exitosa!' : 'Falló la prueba, revisá los logs.');
     } catch (e) {
       showMsg(tMsg, e.message, true);
     }
