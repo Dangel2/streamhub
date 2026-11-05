@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#05070f">
   <title>StreamHub</title>
   <link rel="stylesheet" href="app.css">
@@ -10,7 +10,7 @@
 <body>
 <main id="app">
 
-  <!-- PASO 1: Ingreso de ID de Telegram -->
+  <!-- PASO 1: Pedir Telegram ID -->
   <section class="screen" data-screen="1">
     <div class="brand">
       <div class="logo tg">✈</div>
@@ -22,29 +22,35 @@
       <label class="lbl" for="tgId">TU ID DE TELEGRAM</label>
       <div class="row">
         <input id="tgId" class="inp" inputmode="numeric" autocomplete="off" placeholder="Ej: 123456789">
+        <button id="btnSend" class="btn btn-ghost" type="button">Enviar código</button>
       </div>
       <p class="help">¿No conocés tu ID?<br>Entrá a <b>@StreamsHub_bot</b>, tocá <code>/start</code> y después <code>/id</code>.</p>
-      <button id="btnSend" class="btn btn-main" disabled>SOLICITAR CÓDIGO</button>
+      <button id="btnVerify" class="btn btn-main" type="button" disabled>VERIFICAR</button>
     </div>
   </section>
 
-  <!-- PASO 2: Verificación de Código OTP Telegram -->
+  <!-- PASO 2: Verificar OTP de Login -->
   <section class="screen" data-screen="2" hidden>
     <div class="brand">
       <div class="logo tg">✈</div>
       <h1>StreamHub</h1>
-      <p>Verificá tu identidad</p>
+      <p>Activá tu cuenta en segundos</p>
     </div>
     <div class="card">
       <div class="steps"><i class="on"></i><i></i><i></i></div>
-      <div class="user-summary">
-        <span>ID: <b id="tgIdShow">---</b></span>
-        <button id="btnChangeId" class="btn-link">Cambiar</button>
+      <label class="lbl">TU ID DE TELEGRAM</label>
+      <div class="row">
+        <input id="tgIdShow" class="inp" readonly>
       </div>
-      <label class="lbl">CÓDIGO RECIBIDO EN TELEGRAM</label>
-      <div id="otpLogin" class="otp"></div>
-      <p class="help">El código vence en 5 minutos. Si no llegó, revisá el bot.</p>
-      <button id="btnLogin" class="btn btn-main" disabled>VERIFICAR CÓDIGO</button>
+      <label class="lbl">CÓDIGO RECIBIDO</label>
+      <div id="otpLogin" class="otp">
+        <input type="text" inputmode="numeric" maxlength="1">
+        <input type="text" inputmode="numeric" maxlength="1">
+        <input type="text" inputmode="numeric" maxlength="1">
+        <input type="text" inputmode="numeric" maxlength="1">
+      </div>
+      <p class="help">El código vence en 5 minutos. Si no llegó, volvé y pedí otro.</p>
+      <button id="btnLogin" class="btn btn-main" type="button" disabled>VERIFICAR</button>
     </div>
   </section>
 
@@ -57,12 +63,28 @@
     </div>
     <div class="card">
       <div class="steps"><i class="done"></i><i class="on"></i><i></i></div>
-      <div id="plats" class="plats"></div>
-      <button id="btnPlat" class="btn btn-main" disabled>CONTINUAR</button>
+      <div id="plats" class="plats">
+        <div class="plat" data-id="netflix">
+          <div class="ic" style="background:#E50914;">N</div>
+          <div><b>Netflix</b><small>Disponible</small></div>
+          <div class="radio"></div>
+        </div>
+        <div class="plat" data-id="disney">
+          <div class="ic" style="background:#113ccf;">D+</div>
+          <div><b>Disney+</b><small>Disponible</small></div>
+          <div class="radio"></div>
+        </div>
+        <div class="plat" data-id="max">
+          <div class="ic" style="background:#002be7;">M</div>
+          <div><b>Max</b><small>Disponible</small></div>
+          <div class="radio"></div>
+        </div>
+      </div>
+      <button id="btnPlat" class="btn btn-main" type="button" disabled>CONTINUAR</button>
     </div>
   </section>
 
-  <!-- PASO 4: Código mostrado en la TV -->
+  <!-- PASO 4: Ingreso de Código TV -->
   <section class="screen" data-screen="4" hidden>
     <div class="brand">
       <div class="logo key">🔑</div>
@@ -72,22 +94,28 @@
     <div class="card">
       <div class="steps"><i class="done"></i><i class="done"></i><i class="on"></i></div>
       <p class="mid">Código que muestra la pantalla de tu TV.<br><b>No cierres esta pantalla.</b></p>
-      <div id="otpTv" class="otp"></div>
-      <button id="btnActivate" class="btn btn-main" disabled>ACTIVAR CUENTA</button>
+      <div id="otpTv" class="otp">
+        <input type="text" inputmode="numeric" maxlength="1">
+        <input type="text" inputmode="numeric" maxlength="1">
+        <input type="text" inputmode="numeric" maxlength="1">
+        <input type="text" inputmode="numeric" maxlength="1">
+      </div>
+      <button id="btnActivate" class="btn btn-main" type="button" disabled>ACTIVAR</button>
     </div>
   </section>
 
-  <!-- PASO 5: Resultado (Éxito / Error) -->
+  <!-- PASO 5: Resultado -->
   <section class="screen" data-screen="5" hidden>
     <div class="brand">
       <div class="logo key" id="resIcon">✅</div>
-      <h1 id="resTitle">Estado de Activación</h1>
-      <p id="resSub"></p>
+      <h1 id="resTitle">Listo</h1>
+      <p id="resSub">Cuenta activada correctamente</p>
     </div>
     <div class="card">
-      <pre id="resLog" class="log"></pre>
+      <pre id="resLog" class="log">Conexión exitosa con el servicio.
+La cuenta fue vinculada correctamente a la TV.</pre>
       <p class="mid">Reiniciando en <b id="countdown">8</b>…</p>
-      <button id="btnAgain" class="btn btn-main">ACTIVAR OTRA CUENTA</button>
+      <button id="btnAgain" class="btn btn-main" type="button">ACTIVAR OTRA CUENTA</button>
     </div>
   </section>
 
