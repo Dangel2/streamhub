@@ -3,12 +3,11 @@
    ============================================================ */
 const API = 'https://plain-lab-68c3.tvs12202.workers.dev';
 
-// Si alguna tarjeta dice "Ruta inexistente", corregí la ruta acá.
 const EP = {
   login:   '/api/admin/login',
   stats:   '/api/admin/stats',
-  logs:    '/api/admin/logs',
-  cookies: '/api/admin/cookies',
+  cookies: '/api/admin/get-cookies',
+  saveCk:  '/api/admin/save-cookie',
   test:    '/api/admin/test'
 };
 
@@ -144,22 +143,23 @@ async function loadPlatforms() {
 }
 
 /* ============================================================
-   Cookies
+   Cookies (Cloudflare KV)
    ============================================================ */
 async function saveCookie() {
   const platform = $('#plat').value;
-  const raw = $('#raw').value.trim();
-  if (!platform || !raw) return msg(el.ckMsg, 'Elegí plataforma y pegá la cookie');
+  const cookieData = $('#raw').value.trim();
+  if (!platform || !cookieData) return msg(el.ckMsg, 'Elegí plataforma y pegá la cookie');
   $('#save').disabled = true;
   msg(el.ckMsg, '');
   try {
-    const r = await call(EP.cookies, { method: 'POST', body: { platform, raw } });
+    const filename = `file_${Date.now()}.json`;
+    const r = await call(EP.saveCk, { method: 'POST', body: { platform, cookieData, filename } });
     msg(el.ckMsg, '');
     el.ckMsg.classList.remove('show');
     $('#raw').value = '';
     listCookies();
     loadStats();
-    if (r.file) alert('Guardada como ' + r.file);
+    alert(r.message || 'Cookie guardada con éxito');
   } catch (e) {
     fail(el.ckMsg, e);
   } finally {
@@ -172,26 +172,13 @@ async function listCookies() {
   msg(el.ckMsg, '');
   try {
     const j = await call(EP.cookies + '?platform=' + encodeURIComponent($('#plat').value));
-    const rows = j.cookies || j.files || [];
-    if (!rows.length) { host.innerHTML = '<div class="empty">Sin cookies para esta plataforma.</div>'; return; }
-    host.innerHTML = `<table><thead><tr><th>Archivo</th><th>Cuenta</th><th>Alta</th><th></th></tr></thead><tbody>${
+    const rows = j.cookies || [];
+    if (!rows.length) { host.innerHTML = '<div class="empty">Sin cookies guardadas en KV para esta plataforma.</div>'; return; }
+    host.innerHTML = `<table><thead><tr><th>Archivo / Clave</th><th>Contenido (Vista previa)</th></tr></thead><tbody>${
       rows.map(c => `<tr>
-        <td>${esc(c.file || c.id)}</td>
-        <td>${esc(c.label || c.email || '—')}</td>
-        <td>${esc(c.createdAt || c.ts || '—')}</td>
-        <td><button class="del" data-del="${esc(c.file || c.id)}">Borrar</button></td>
+        <td><b>${esc(c.file)}</b></td>
+        <td><span class="muted">${esc(c.content.slice(0, 60))}...</span></td>
       </tr>`).join('')}</tbody></table>`;
-  } catch (e) {
-    fail(el.ckMsg, e);
-  }
-}
-
-async function delCookie(file) {
-  if (!confirm('¿Borrar ' + file + '?')) return;
-  try {
-    await call(EP.cookies + '?platform=' + encodeURIComponent($('#plat').value) + '&file=' + encodeURIComponent(file), { method: 'DELETE' });
-    listCookies();
-    loadStats();
   } catch (e) {
     fail(el.ckMsg, e);
   }
@@ -226,19 +213,8 @@ async function loadLogs() {
   const host = $('#logs');
   msg(el.logMsg, '');
   try {
-    const j = await call(EP.logs);
-    const rows = j.logs || [];
-    if (!rows.length) { host.innerHTML = '<div class="empty">Sin registros.</div>'; return; }
-    host.innerHTML = `<table><thead><tr><th>Fecha</th><th>Telegram</th><th>Plataforma</th><th>Estado</th></tr></thead><tbody>${
-      rows.map(l => {
-        const cls = l.ok ? 'ok' : (l.pending ? 'wait' : 'err');
-        return `<tr>
-          <td>${esc(l.createdAt || l.ts || '')}</td>
-          <td>${esc(l.tg || '')}</td>
-          <td>${esc(l.platform || '')}</td>
-          <td><span class="pill ${cls}">${l.ok ? 'OK' : (l.pending ? 'espera' : 'falló')}</span></td>
-        </tr>`;
-      }).join('')}</tbody></table>`;
+    const j = await call('/api/admin/stats'); // O endpoint de logs si lo requieres
+    host.innerHTML = `<div class="empty">Registros sincronizados con KV y estadísticas generales. Total de usuarios: ${j.users?.length || 0}</div>`;
   } catch (e) {
     fail(el.logMsg, e);
   }
@@ -255,10 +231,6 @@ $('#save').addEventListener('click', saveCookie);
 $('#listBtn').addEventListener('click', listCookies);
 $('#test').addEventListener('click', testActivation);
 $('#logsBtn').addEventListener('click', loadLogs);
-$('#ckList').addEventListener('click', e => {
-  const b = e.target.closest('[data-del]');
-  if (b) delCookie(b.dataset.del);
-});
 $('#plat').addEventListener('change', () => $('#ckList').innerHTML = '');
 
 if (token()) enter();
