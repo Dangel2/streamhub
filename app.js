@@ -1,5 +1,5 @@
 const CONFIG = {
-  API: 'https://streamhub-activador.plain-lab-68c3.workers.dev', // ← Paso 5
+  API: 'https://plain-lab-68c3.tvs12202.workers.dev', // ← Paso 5
   PLATFORMS: 'platforms.json',
   MAX_PROBE: 60,
   RESET_SECS: 8
