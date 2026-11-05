@@ -203,4 +203,5 @@ function resetApp() {
 }
 $('#btnAgain').addEventListener('click', resetApp);
 
-
+$('#toast').hidden = true;
+show(1);
