@@ -6,103 +6,205 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#0a0416">
 <title>DanGel Flix · Admin</title>
-...
-<h1>DanGel Flix <small>Panel de administración</small></h1>
 <style>
-:root{--bg:#0a0416;--
-  card:#160b28;--
-  line:#33194f;--
-  txt:#f0e9fb;--
-  dim:#a48fc2;--
-  acc:#a855f7;--
-  ok:#17b26a;--
-  err:#e5484d}
-​{ box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--txt); font: 15px/1.55 system-ui, -apple-system, sans-serif; padding: 16px 16px 60px; }
+:root {
+  --bg: #0a0416;
+  --card: #160b28;
+  --field: #0f0720;
+  --line: #33194f;
+  --txt: #f0e9fb;
+  --dim: #a48fc2;
+  --acc: #a855f7;
+  --acc-hover: #9333ea;
+  --ok: #17b26a;
+  --err: #e5484d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: radial-gradient(120% 60% at 50% 0%, #1d0f36 0%, var(--bg) 60%) fixed;
+  color: var(--txt);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 16px 16px 60px;
+  min-height: 100vh;
+}
+
 .wrap { max-width: 900px; margin: 0 auto; }
+
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 18px; }
-h1 { font-size: 20px; margin: 0; font-weight: 800; }
-h1 small { display: block; font-size: 11px; font-weight: 400; color: var(--dim); }
+
+h1 { font-size: 20px; margin: 0; font-weight: 800; color: #e9d8ff; }
+h1 small { display: block; font-size: 11px; font-weight: 400; color: var(--dim); margin-top: 2px; }
 h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 26px 0 10px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+}
 .card + .card { margin-top: 12px; }
-label { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; font-weight: 700; }
-input, select, textarea { width: 100%; background: #0f0720; border: 1px solid var(--line); color: var(--txt); border-radius: 9px; padding: 11px 12px; font: inherit; }
+
+label {
+  display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--dim); margin-bottom: 6px; font-weight: 700;
+}
+
+input, select, textarea {
+  width: 100%; background: var(--field); border: 1px solid var(--line); color: var(--txt);
+  border-radius: 9px; padding: 11px 12px; font: inherit;
+}
+input::placeholder, textarea::placeholder { color: #6b568c; }
 textarea { min-height: 120px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; resize: vertical; }
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--acc-hover); box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2); }
-button { border: 0; border-radius: 9px; padding: 11px 16px; font: inherit; font-weight: 600; cursor: pointer; background: var(--acc); color: #fff; transition: .2s; }
+
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--acc);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, .22);
+}
+
+button {
+  border: 0; border-radius: 9px; padding: 11px 16px; font: inherit; font-weight: 600;
+  cursor: pointer; background: var(--acc); color: #fff; transition: .2s;
+}
 button:hover { background: var(--acc-hover); }
 button:disabled { opacity: .5; cursor: not-allowed; }
-button.ghost { background: transparent; border: 1px solid var(--line); color: var(--dim); font-weight: 500; padding: 8px 12px; font-size: 13px; }
+
+button.ghost {
+  background: transparent; border: 1px solid var(--line); color: var(--dim);
+  font-weight: 500; padding: 8px 12px; font-size: 13px;
+}
+button.ghost:hover { background: rgba(168, 85, 247, .12); color: var(--txt); }
+
+button.del {
+  background: transparent; border: 1px solid #5c2530; color: #ff9ea1;
+  padding: 5px 10px; font-size: 12px; border-radius: 7px;
+}
+button.del:hover { background: #331216; }
+
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
 .row > * { flex: 1; min-width: 130px; }
+
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
-.stat { background: #0f0720; border: 1px solid var(--line); border-radius: 11px; padding: 13px; }
+.stat { background: var(--field); border: 1px solid var(--line); border-radius: 11px; padding: 13px; }
 .stat b { display: block; font-size: 24px; line-height: 1.1; color: #f3e8ff; }
 .stat span { font-size: 11px; color: var(--dim); text-transform: uppercase; }
+
 .checks { display: flex; gap: 6px; flex-wrap: wrap; }
-.chk { font-size: 11px; padding: 4px 10px; border-radius: 20px; background: #142a1d; color: var(--ok); border: 1px solid #22c55e; }
+.chk {
+  font-size: 11px; padding: 4px 10px; border-radius: 20px;
+  background: #142a1d; color: var(--ok); border: 1px solid #22c55e;
+}
+.chk.bad { background: #331216; color: #ff9ea1; border-color: #5c2530; }
+
 .msg { margin-top: 12px; font-size: 13px; padding: 10px 12px; border-radius: 9px; display: none; }
 .msg.show { display: block; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--dim); font-weight: 700; padding: 8px 10px; border-bottom: 1px solid var(--line);
+}
+td { padding: 9px 10px; border-bottom: 1px solid rgba(51, 25, 79, .55); color: #ded1f2; }
+tr:last-child td { border-bottom: 0; }
+td code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #c9aef0; }
+
+.pill {
+  font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 700;
+  display: inline-block;
+}
+.pill.ok { background: #142a1d; color: var(--ok); border: 1px solid #22c55e; }
+.pill.err { background: #331216; color: #ff9ea1; border: 1px solid #5c2530; }
+
+.empty { color: var(--dim); font-size: 13px; padding: 14px 0; }
+
+pre.log {
+  background: var(--field); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; font: 12px/1.6 ui-monospace, Menlo, monospace; color: #b9a6d8;
+  white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 340px; margin: 0;
+}
+
 [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <div class="wrap">
-​<header>
-<h1>DangelFlix <small>Panel de Administración</small></h1>
-<button id="out" class="ghost" hidden>Salir</button>
+
+<header>
+  <h1>DanGel Flix <small>Panel de administración</small></h1>
+  <button id="out" class="ghost" hidden>Salir</button>
 </header>
-​<div id="loginBox" class="card">
-<label for="pw">Contraseña de administración</label>
-<input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
-<div class="row" style="margin-top:12px">
-<button id="go">Entrar</button>
+
+<div id="loginBox" class="card">
+  <label for="pw">Contraseña de administración</label>
+  <input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
+  <div class="row" style="margin-top:12px">
+    <button id="go">Entrar</button>
+  </div>
+  <div id="loginMsg" class="msg"></div>
 </div>
-<div id="loginMsg" class="msg"></div>
+
+<div id="panel" hidden>
+
+  <h2>Estado del sistema</h2>
+  <div class="card">
+    <div id="checks" class="checks"><span class="chk">Cloudflare Worker Conectado</span></div>
+    <div class="msg" id="checkMsg"></div>
+  </div>
+
+  <h2>Resumen</h2>
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><b id="sCookies">0</b><span>Cookies</span></div>
+      <div class="stat"><b id="sAct">0</b><span>Activaciones hoy</span></div>
+      <div class="stat"><b id="sOk">0</b><span>Usuarios totales</span></div>
+      <div class="stat"><b id="sErr">0</b><span>Nuevos hoy</span></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="reload" class="ghost">Actualizar</button>
+    </div>
+    <div class="msg" id="statsMsg"></div>
+  </div>
+
+  <h2>Cargar cookie a Cloudflare KV</h2>
+  <div class="card">
+    <label for="plat">Plataforma</label>
+    <select id="plat"></select>
+    <label for="raw" style="margin-top:12px">Contenido de la cookie</label>
+    <textarea id="raw" placeholder='[{"name":"NetflixId","value":"..."}]  ·  o formato Netscape'></textarea>
+    <div class="row" style="margin-top:12px">
+      <button id="save">Guardar cookie</button>
+      <button id="listBtn" class="ghost">Ver guardadas</button>
+    </div>
+    <div class="msg" id="ckMsg"></div>
+    <div id="ckList"></div>
+  </div>
+
+  <h2>Prueba de activación</h2>
+  <div class="card">
+    <label for="tplat">Plataforma</label>
+    <select id="tplat"></select>
+    <label for="tcode" style="margin-top:12px">Código de la TV</label>
+    <input id="tcode" type="text" autocapitalize="characters" spellcheck="false" placeholder="Código que muestra la pantalla">
+    <div class="row" style="margin-top:12px">
+      <button id="test">Probar</button>
+    </div>
+    <div class="msg" id="tMsg"></div>
+    <div id="tLog" style="margin-top:12px"></div>
+  </div>
+
+  <h2>Registros de activación</h2>
+  <div class="card">
+    <div class="row">
+      <button id="logsBtn" class="ghost">Ver últimos registros</button>
+    </div>
+    <div class="msg" id="logMsg"></div>
+    <div id="logs"></div>
+  </div>
+
 </div>
-​<div id="panel" hidden>
-​<h2>Estado del sistema</h2>
-<div class="card">
-<div id="checks" class="checks"><span class="chk">Cloudflare Worker Conectado</span></div>
-</div>
-​<h2>Resumen</h2>
-<div class="card">
-<div class="stats">
-<div class="stat"><b id="sCookies">0</b><span>Usuarios</span></div>
-<div class="stat"><b id="sAct">0</b><span>Activaciones Hoy</span></div>
-<div class="stat"><b id="sOk">0</b><span>Total Reg</span></div>
-<div class="stat"><b id="sErr">0</b><span>Nuevos Hoy</span></div>
-</div>
-<div class="row" style="margin-top:14px">
-<button id="reload" class="ghost">Actualizar</button>
-</div>
-<div class="msg" id="statsMsg"></div>
-</div>
-​<h2>Cargar Cookie a Cloudflare KV</h2>
-<div class="card">
-<label for="plat">Plataforma</label>
-<select id="plat"></select>
-<label for="raw" style="margin-top:12px">Contenido de la cookie</label>
-<textarea id="raw" placeholder='[{"name":"NetflixId","value":"..."}]  ·  o Netscape'></textarea>
-<div class="row" style="margin-top:12px">
-<button id="save">Guardar cookie</button>
-</div>
-<div class="msg" id="ckMsg"></div>
-</div>
-​<h2>Prueba de activación</h2>
-<div class="card">
-<label for="tplat">Plataforma</label>
-<select id="tplat"></select>
-<label for="tcode" style="margin-top:12px">Código de la TV</label>
-<input id="tcode" inputmode="numeric" placeholder="Código que muestra la pantalla">
-<div class="row" style="margin-top:12px">
-<button id="test">Probar</button>
-</div>
-<div class="msg" id="tMsg"></div>
-<div id="tLog" style="margin-top:12px"></div>
-</div>
-​</div>
 </div>
 <script src="admin.js"></script>
 </body>
