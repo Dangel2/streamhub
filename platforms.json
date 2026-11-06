@@ -1,11 +1,11 @@
 {
-  "platforms": [
-    { "id": "netflix",      "name": "Netflix",      "short": "N",  "codeLength": 8, "color": "#E50914" },
-    { "id": "disneyplus",   "name": "Disney+",      "short": "D+", "codeLength": 8, "color": "#113CCF" },
-    { "id": "max",          "name": "Max",          "short": "M",  "codeLength": 6, "color": "#002BE7" },
-    { "id": "primevideo",   "name": "Prime Video",  "short": "P",  "codeLength": 6, "color": "#00A8E1" },
-    { "id": "paramount",    "name": "Paramount+",   "short": "P+", "codeLength": 6, "color": "#0064FF" },
-    { "id": "crunchyroll",  "name": "Crunchyroll",  "short": "C",  "codeLength": 6, "color": "#F47521" },
-    { "id": "spotify",      "name": "Spotify",      "short": "S",  "codeLength": 6, "color": "#1DB954" }
-  ]
+"platforms": [
+{ "id": "netflix",      "name": "Netflix",      "short": "N",  "codeLength": 8, "color": "#E50914" },
+{ "id": "disneyplus",   "name": "Disney+",      "short": "D+", "codeLength": 8, "color": "#7e22ce" },
+{ "id": "max",          "name": "Max",          "short": "M",  "codeLength": 6, "color": "#9333ea" },
+{ "id": "primevideo",   "name": "Prime Video",  "short": "P",  "codeLength": 6, "color": "#00A8E1" },
+{ "id": "paramount",    "name": "Paramount+",   "short": "P+", "codeLength": 6, "color": "#0064FF" },
+{ "id": "crunchyroll",  "name": "Crunchyroll",  "short": "C",  "codeLength": 6, "color": "#F47521" },
+{ "id": "spotify",      "name": "Spotify",      "short": "S",  "codeLength": 6, "color": "#1DB954" }
+]
 }
