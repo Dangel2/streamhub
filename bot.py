@@ -18,9 +18,9 @@ from urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 TOKEN = "9238856656:AAEp9pr-_KqKgJeHDbJViOECWBrDYiI44eI"
-ADMIN_IDS = {123456789}                      # ← tus IDs de Telegram
+ADMIN_IDS = {1799882584}
 WORKER_URL = "https://plain-lab-68c3.tvs12202.workers.dev"
-WORKER_ADMIN = "TU_ADMIN_PASSWORD_AQUI"
+WORKER_ADMIN = "Admin123*"
 
 ZONA_HORARIA = "America/Mexico_City"
 TIMEOUT_API = 25
