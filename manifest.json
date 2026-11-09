@@ -1,0 +1,16 @@
+{
+  "background_color": "#160b28",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "dangel2.github",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "dangel2.github",
+  "start_url": "/",
+  "theme_color": "#160b28",
+  "categories": [
+    "development"
+  ],
+  "id": "com.dangel.unirex",
+  "description": "Plataforma de streaming y entretenimiento de DangelFlix"
+}
