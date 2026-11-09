@@ -1,26 +1,16 @@
 (() => {
   const API_BASE = 'https://plain-lab-68c3.tvs12202.workers.dev';
-  const TIMEOUT = 20000;
-  const FALLBACK_PLATS = [
-    { id: 'netflix', name: 'Netflix', short: 'N', codeLength: 8, color: '#E50914' },
-    { id: 'disneyplus', name: 'Disney+', short: 'D+', codeLength: 8, color: '#113CCF' },
-    { id: 'max', name: 'Max', short: 'M', codeLength: 6, color: '#002BE7' },
-    { id: 'primevideo', name: 'Prime Video', short: 'P', codeLength: 6, color: '#00A8E8' },
-    { id: 'paramount', name: 'Paramount+', short: 'P+', codeLength: 6, color: '#0064FF' },
-    { id: 'crunchyroll', name: 'Crunchyroll', short: 'C', codeLength: 6, color: '#F47521' },
-    { id: 'spotify', name: 'Spotify', short: 'S', codeLength: 6, color: '#1DB954' }
-  ];
+  const TIMEOUT = 25000;
 
   const $ = s => document.querySelector(s);
   const toastEl = $('#toast');
+
   let session = sessionStorage.getItem('dg_session') || '';
+  let me = null;
   let otpToken = '';
   let tgId = '';
   let platforms = [];
-  let selected = null;
-  let countdownTimer = null;
-
-  /* ---------- helpers ---------- */
+  let lastUrl = '';
 
   function toast(msg, isErr = true) {
     toastEl.textContent = msg;
@@ -34,6 +24,7 @@
     document.querySelectorAll('.screen').forEach(s => {
       s.hidden = s.dataset.screen !== String(n);
     });
+    $('#topbar').hidden = ![3, 4, 5, 6].includes(Number(n));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -44,13 +35,21 @@
       const headers = { 'content-type': 'application/json' };
       if (opt.auth !== false && session) headers.authorization = 'Bearer ' + session;
       const res = await fetch(API_BASE + path, {
-        method: 'POST', headers, body: JSON.stringify(body || {}), signal: ctrl.signal
+        method: opt.method || 'POST',
+        headers,
+        body: opt.method === 'GET' ? undefined : JSON.stringify(body || {}),
+        signal: ctrl.signal
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.ok === false) throw new Error(data.error || 'Error del servidor');
+      if (res.status === 401) { logout(); throw new Error('Sesión vencida'); }
+      if (!res.ok || data.ok === false) {
+        const err = new Error(data.error || 'Error del servidor');
+        err.code = data.code;
+        throw err;
+      }
       return data;
     } catch (e) {
-      if (e.name === 'AbortError') throw new Error('El servidor tardó demasiado. Probá de nuevo.');
+      if (e.name === 'AbortError') throw new Error('El servidor tardó demasiado.');
       if (e instanceof TypeError) throw new Error('Sin conexión con el servidor.');
       throw e;
     } finally { clearTimeout(t); }
@@ -58,13 +57,20 @@
 
   async function withBtn(btn, label, fn) {
     const old = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = label;
+    btn.disabled = true; btn.textContent = label;
     try { return await fn(); }
     finally { btn.textContent = old; btn.disabled = false; }
   }
 
-  /* ---------- OTP boxes ---------- */
+  function logout() {
+    session = '';
+    me = null;
+    sessionStorage.removeItem('dg_session');
+    closeDrawer();
+    show(1);
+  }
+
+  /* ---------- OTP ---------- */
 
   function wireOtp(container, onChange) {
     const inputs = [...container.querySelectorAll('input')];
@@ -78,8 +84,7 @@
       inp.addEventListener('keydown', e => {
         if (e.key === 'Backspace' && !inp.value && i > 0) {
           e.preventDefault();
-          inputs[i - 1].focus();
-          inputs[i - 1].value = '';
+          inputs[i - 1].focus(); inputs[i - 1].value = '';
           onChange(val());
         }
       });
@@ -92,33 +97,22 @@
         inputs[Math.min(d.length, inputs.length - 1)].focus();
       });
     });
-    return {
-      val,
-      clear: () => { inputs.forEach(i => i.value = ''); inputs[0].focus(); }
-    };
+    return { val, clear: () => { inputs.forEach(i => i.value = ''); inputs[0].focus(); } };
   }
 
-  const otpLogin = wireOtp($('#otpLogin'), v => {
-    $('#btnLogin').disabled = v.length !== 6;
+  const otpLogin = wireOtp($('#otpLogin'), v => { $('#btnLogin').disabled = v.length !== 6; });
+
+  $('#tgId').addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 12);
   });
 
-  /* ---------- PASO 1: enviar OTP ---------- */
-
-  const btnSend = $('#btnSend');
-  const tgInput = $('#tgId');
-
-  tgInput.addEventListener('input', () => {
-    tgInput.value = tgInput.value.replace(/\D/g, '').slice(0, 12);
-  });
-
-  btnSend.addEventListener('click', () => {
-    const id = tgInput.value.trim();
+  $('#btnSend').addEventListener('click', () => {
+    const id = $('#tgId').value.trim();
     if (!/^\d{5,12}$/.test(id)) return toast('Ingresá un ID de Telegram válido');
-    withBtn(btnSend, '…', async () => {
+    withBtn($('#btnSend'), '…', async () => {
       try {
         const r = await api('/api/otp', { tg: id }, { auth: false });
-        otpToken = r.token;
-        tgId = id;
+        otpToken = r.token; tgId = id;
         $('#tgIdShow').value = id;
         otpLogin.clear();
         $('#btnLogin').disabled = true;
@@ -128,9 +122,17 @@
     });
   });
 
-  tgInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnSend.click(); });
-
-  /* ---------- PASO 2: verificar ---------- */
+  $('#btnResend').addEventListener('click', () => {
+    if (!tgId) return show(1);
+    withBtn($('#btnResend'), 'Enviando…', async () => {
+      try {
+        const r = await api('/api/otp', { tg: tgId }, { auth: false });
+        otpToken = r.token; otpLogin.clear();
+        $('#btnLogin').disabled = true;
+        toast('Código reenviado', false);
+      } catch (e) { toast(e.message); }
+    });
+  });
 
   $('#btnLogin').addEventListener('click', async () => {
     const code = otpLogin.val();
@@ -140,7 +142,9 @@
       session = r.session;
       sessionStorage.setItem('dg_session', session);
       otpLogin.clear();
-      renderPlatforms();
+      me = r.user;
+      await loadPlatforms();
+      renderDashboard();
       show(3);
     } catch (e) {
       toast(e.message);
@@ -149,164 +153,349 @@
     }
   });
 
-  $('#btnResend').addEventListener('click', () => {
-    if (!tgId) return show(1);
-    withBtn($('#btnResend'), 'Enviando…', async () => {
-      try {
-        const r = await api('/api/otp', { tg: tgId }, { auth: false });
-        otpToken = r.token;
-        otpLogin.clear();
-        $('#btnLogin').disabled = true;
-        toast('Código reenviado', false);
-      } catch (e) { toast(e.message); }
-    });
+  /* ---------- dashboard ---------- */
+
+  async function loadMe() {
+    const r = await api('/api/me', {}, { method: 'GET' });
+    me = r.user;
+    renderDashboard();
+  }
+
+  function renderDashboard() {
+    if (!me) return;
+    const nombre = me.first_name || me.username || 'Usuario';
+    $('#meAvatar').textContent = nombre.trim().charAt(0).toUpperCase() || '?';
+    $('#meName').textContent = nombre;
+    $('#meUser').textContent = me.username ? '@' + me.username : 'ID ' + me.tg;
+    $('#dwName').textContent = nombre;
+    $('#dwStatus').textContent = me.status === 'active' ? '🟢 Activo' : '🔴 Sin permiso';
+
+    const st = $('#meStatus');
+    st.className = 'pill ' + (me.status === 'active' ? 'ok' : 'bad');
+    st.textContent = me.status === 'active' ? '🟢 Activo' : '🔴 Inactivo';
+
+    const alerta = $('#meAlert');
+    if (me.status === 'active') alerta.hidden = true;
+    else {
+      alerta.hidden = false;
+      alerta.textContent = '⏳ Tu cuenta espera aprobación del administrador. Hasta entonces no podés usar las plataformas.';
+    }
+
+    const entradas = Object.entries(me.usage || {})
+      .filter(([p, v]) => v > 0 && platforms.some(x => x.id === p));
+
+    $('#meUsage').innerHTML = entradas.length
+      ? entradas.map(([p, v]) => `<div class="usage-item"><b>${esc(platformName(p))}</b><span>${v}</span></div>`).join('')
+      : '<div class="muted">Sin consumos registrados</div>';
+  }
+
+  function platformName(id) {
+    const p = platforms.find(x => x.id === id);
+    return p ? p.name : id;
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  $('#btnRefresh').addEventListener('click', () => withBtn($('#btnRefresh'), '…', async () => {
+    try { await loadPlatforms(); await loadMe(); toast('Datos actualizados', false); }
+    catch (e) { toast(e.message); }
+  }));
+
+  $('#btnGoPlats').addEventListener('click', async () => {
+    if (!me) return;
+    if (me.status !== 'active') return toast('Tu cuenta espera aprobación del administrador');
+    await renderPlatforms();
+    show(4);
   });
 
-  /* ---------- PASO 3: plataformas ---------- */
+  /* ---------- plataformas ---------- */
 
-  async function renderPlatforms() {
-    const box = $('#plats');
-    if (!platforms.length) {
+  async function loadPlatforms() {
+    try {
+      const r = await api('/api/platforms', {}, { method: 'GET' });
+      platforms = Array.isArray(r.platforms) ? r.platforms : [];
+    } catch {
       try {
         const res = await fetch('platforms.json', { cache: 'no-store' });
         const d = await res.json();
-        platforms = Array.isArray(d.platforms) && d.platforms.length ? d.platforms : FALLBACK_PLATS;
-      } catch { platforms = FALLBACK_PLATS; }
+        platforms = Array.isArray(d.platforms) ? d.platforms : [];
+      } catch { platforms = []; }
     }
+  }
+
+  async function renderPlatforms() {
+    const box = $('#plats');
+    box.innerHTML = '<span class="muted">Cargando…</span>';
+    await loadPlatforms();
+
+    if (!platforms.length) {
+      box.innerHTML = '<div class="muted">El administrador no tiene plataformas habilitadas.</div>';
+      return;
+    }
+
     box.innerHTML = '';
     platforms.forEach(p => {
       const el = document.createElement('div');
       el.className = 'plat';
-      el.dataset.id = p.id;
-      el.innerHTML = `<div class="ic" style="background:${p.color}">${p.short}</div>
-        <div><b></b><small>Disponible</small></div><div class="radio"></div>`;
+      el.innerHTML = `<div class="ic" style="background:${esc(p.color)}">${esc(p.short)}</div>
+        <div><b></b><small>${p.direct ? '⚡ Acceso directo' : 'Disponible'}</small></div>
+        <div class="radio"></div>`;
       el.querySelector('b').textContent = p.name;
       el.addEventListener('click', () => {
-        box.querySelectorAll('.plat').forEach(x => x.classList.remove('sel'));
-        el.classList.add('sel');
-        selected = p;
-        $('#btnPlat').disabled = false;
+        if (me.status !== 'active') return toast('Tu cuenta espera aprobación del administrador');
+        p.direct ? directNetflix() : openTvPanel(p);
       });
       box.appendChild(el);
     });
   }
 
-  $('#btnPlat').addEventListener('click', () => {
-    if (!selected) return;
+  /* ---------- carga directa Netflix ---------- */
+
+  async function directNetflix() {
+    show(5);
+    $('#directLog').hidden = true;
+    $('#btnDirectOpen').disabled = true;
+    $('#btnDirectCopy').hidden = true;
+    $('#directBox').textContent = 'Solicitando cookie activa y generando token…';
+
+    try {
+      const r = await api('/api/nftoken', {});
+      lastUrl = r.url_web;
+      $('#directBox').innerHTML =
+        `✅ Sesión generada<br><small class="muted">Caduca: ${esc(r.caduca)} · archivo ${esc(r.file)}</small>`;
+      $('#directLog').textContent = `web:  ${r.url_web}\napp:  ${r.url_app}\ntv:   ${r.url_tv}`;
+      $('#directLog').hidden = false;
+      $('#btnDirectOpen').disabled = false;
+      $('#btnDirectCopy').hidden = false;
+
+      setTimeout(() => {
+        if (!$('#btnDirectOpen').disabled) go(r.url_web);
+      }, 1200);
+
+      registrarToken('netflix', r.url_web);
+      await loadMe();
+    } catch (e) {
+      $('#directBox').textContent = '⚠️ ' + e.message;
+      if (e.code === 'INACTIVE') setTimeout(() => { renderDashboard(); show(3); }, 1600);
+    }
+  }
+
+  function go(url) {
+    const bridge = window.AndroidBridge || window.webkit?.messageHandlers?.dgflix;
+    if (bridge && typeof bridge.openUrl === 'function') bridge.openUrl(url);
+    else if (bridge && typeof bridge.postMessage === 'function') bridge.postMessage(JSON.stringify({ action: 'open', url }));
+    else window.location.href = url;
+  }
+
+  $('#btnDirectOpen').addEventListener('click', () => lastUrl && go(lastUrl));
+  $('#btnDirectCopy').addEventListener('click', async () => {
+    if (!lastUrl) return;
+    try { await navigator.clipboard.writeText(lastUrl); toast('Enlace copiado', false); }
+    catch { toast('No se pudo copiar'); }
+  });
+  $('#btnDirectBack').addEventListener('click', () => { renderDashboard(); show(3); });
+
+  /* ---------- panel TV ---------- */
+
+  let selected = null;
+
+  function openTvPanel(p) {
+    selected = p;
     const tv = $('#tvCode');
     tv.value = '';
-    tv.maxLength = selected.codeLength || 8;
-    tv.placeholder = `Código de ${selected.codeLength || 8} caracteres`;
+    tv.maxLength = p.codeLength || 8;
+    tv.placeholder = `Código de ${p.codeLength || 8} caracteres`;
     $('#btnActivate').disabled = true;
-    show(4);
+    show(6);
     tv.focus();
+  }
+
+  $('#tvCode').addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    $('#btnActivate').disabled = e.target.value.length < 4;
   });
 
-  /* ---------- PASO 4: activar ---------- */
-
-  const tvInput = $('#tvCode');
-
-  tvInput.addEventListener('input', () => {
-    tvInput.value = tvInput.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    const need = selected?.codeLength || 8;
-    $('#btnActivate').disabled = tvInput.value.length < Math.min(4, need);
-  });
-
-  tvInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnActivate').click(); });
-
-  function getBlk() {
-    try { return JSON.parse(localStorage.getItem('dg_blk') || '{}'); } catch { return {}; }
-  }
-  function addBlk(platform, file) {
-    const b = getBlk();
-    (b[platform] ||= []).includes(file) || b[platform].push(file);
-    localStorage.setItem('dg_blk', JSON.stringify(b));
-  }
-
-  async function localCookie(platform) {
-    const blk = new Set(getBlk()[platform] || []);
-    for (let i = 1; i <= 8; i++) {
-      const file = `file${i}.json`;
-      if (blk.has(file)) continue;
-      try {
-        const r = await fetch(`cookies/${platform}/${file}`, { cache: 'no-store' });
-        if (!r.ok) continue;
-        const txt = await r.text();
-        if (!txt.trim().startsWith('[')) continue;
-        return { file, cookie: toCookie(txt) };
-      } catch {}
-    }
-    throw new Error('No hay cookies disponibles');
-  }
-
-  function toCookie(raw) {
-    const t = String(raw || '').trim();
-    if (t.startsWith('[')) {
-      try { return JSON.parse(t).map(c => `${c.name}=${c.value}`).join('; '); } catch {}
-    }
-    return t;
-  }
-
-  async function pickCookie(platform) {
-    try {
-      const r = await api('/api/get-cookie', { platform });
-      if (r.cookie) return { file: r.filename, cookie: r.cookie };
-    } catch (e) { console.warn('worker get-cookie:', e.message); }
-    return localCookie(platform);
-  }
+  $('#btnTvBack').addEventListener('click', () => { renderPlatforms(); show(4); });
 
   $('#btnActivate').addEventListener('click', async () => {
-    const code = tvInput.value.trim();
+    const code = $('#tvCode').value.trim();
     if (!selected || code.length < 4) return toast('Código incompleto');
-
-    const btn = $('#btnActivate');
-    await withBtn(btn, 'Activando…', async () => {
-      let picked;
-      try { picked = await pickCookie(selected.id); }
-      catch (e) { return toast(e.message); }
-
+    await withBtn($('#btnActivate'), 'Activando…', async () => {
       try {
-        const r = await api('/api/activate', { platform: selected.id, cookie: picked.cookie, code, file: picked.file }, { timeout: 45000 });
-        if (r.ok) {
-          $('#resIcon').textContent = '✅';
-          $('#resTitle').textContent = 'Listo';
-          $('#resSub').textContent = 'Cuenta activada correctamente';
-        } else {
-          $('#resIcon').textContent = '⚠️';
-          $('#resTitle').textContent = 'No se pudo activar';
-          $('#resSub').textContent = r.error || 'Probá de nuevo';
-          addBlk(selected.id, picked.file);
-        }
-        $('#resLog').textContent = (r.steps || []).join('\n') || r.error || '';
-        show(5);
-        startCountdown(r.ok ? 8 : 12);
-      } catch (e) {
-        toast(e.message);
-        addBlk(selected.id, picked.file);
-      }
+        const r = await api('/api/activate', { platform: selected.id, code }, { timeout: 45000 });
+        $('#resIcon').textContent = '✅';
+        $('#resTitle').textContent = 'Listo';
+        $('#resSub').textContent = 'Activación enviada';
+        $('#resLog').textContent = (r.steps || []).join('\n');
+        await loadMe();
+        show(7);
+      } catch (e) { toast(e.message); }
     });
   });
 
-  function startCountdown(sec) {
-    clearInterval(countdownTimer);
-    const el = $('#countdown');
-    let n = sec;
-    el.textContent = n;
-    countdownTimer = setInterval(() => {
-      n--;
-      el.textContent = n;
-      if (n <= 0) { clearInterval(countdownTimer); show(3); }
-    }, 1000);
+  $('#btnAgain').addEventListener('click', () => { renderDashboard(); show(3); });
+
+  /* ---------- drawer ---------- */
+
+  function openDrawer() {
+    $('#drawer').hidden = false;
+    $('#scrim').hidden = false;
+    requestAnimationFrame(() => $('#drawer').classList.add('open'));
+  }
+  function closeDrawer() {
+    $('#drawer').classList.remove('open');
+    setTimeout(() => { $('#drawer').hidden = true; $('#scrim').hidden = true; }, 180);
   }
 
-  $('#btnAgain').addEventListener('click', () => {
-    clearInterval(countdownTimer);
-    tvInput.value = '';
-    show(3);
+  $('#btnMenu').addEventListener('click', openDrawer);
+  $('#dwClose').addEventListener('click', closeDrawer);
+  $('#scrim').addEventListener('click', closeDrawer);
+  $('#btnHome').addEventListener('click', () => { renderDashboard(); show(3); });
+  $('#dwLogout').addEventListener('click', async () => {
+    try { await api('/api/logout', {}); } catch {}
+    logout();
   });
 
-  /* ---------- arranque ---------- */
+  document.querySelectorAll('.drawer-nav button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.drawer-nav button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      panels[b.dataset.panel]();
+    });
+  });
 
-  if (session) { renderPlatforms(); show(3); }
-  else show(1);
+  /* ---------- paneles ---------- */
+
+  const panels = {
+    async cookies() {
+      const box = $('#dwPanel');
+      box.innerHTML = '<div class="muted">Cargando…</div>';
+      const filas = [];
+      for (const p of platforms) {
+        try {
+          const r = await api('/api/cookies?platform=' + encodeURIComponent(p.id), {}, { method: 'GET' });
+          filas.push(`<tr><td>${esc(p.name)}</td><td><span class="pill ok">${r.vivas}</span></td>
+            <td><span class="pill bad">${r.muertas}</span></td></tr>`);
+        } catch {}
+      }
+      const usadas = Object.entries(me?.usage || {}).filter(([p, v]) => v > 0 && platforms.some(x => x.id === p));
+      box.innerHTML = `
+        <h4>Pool de cookies</h4>
+        ${filas.length ? `<table class="mini"><tr><th>Plataforma</th><th>Activas</th><th>Muertas</th></tr>${filas.join('')}</table>`
+                       : '<div class="muted">Sin plataformas habilitadas</div>'}
+        <h4>Tu consumo</h4>
+        ${usadas.length
+          ? `<table class="mini">${usadas.map(([p, v]) => `<tr><td>${esc(platformName(p))}</td><td>${v}</td></tr>`).join('')}</table>`
+          : '<div class="muted">Sin consumos</div>'}`;
+    },
+
+    tokens() {
+      const box = $('#dwPanel');
+      const lista = JSON.parse(localStorage.getItem('dg_tokens') || '[]').slice(-25).reverse();
+      box.innerHTML = `
+        <h4>Tokens generados</h4>
+        ${lista.length ? lista.map(t => `
+          <div class="tk">
+            <div class="tk-top"><b>${esc(t.platform)}</b><small>${new Date(t.ts).toLocaleString('es-AR')}</small></div>
+            <code>${esc(t.url)}</code>
+            <div class="row" style="margin-top:6px">
+              <button class="btn btn-ghost sm" data-copy="${esc(t.url)}">Copiar</button>
+              <button class="btn btn-ghost sm" data-open="${esc(t.url)}">Abrir</button>
+            </div>
+          </div>`).join('')
+          : '<div class="muted">Todavía no generaste tokens</div>'}
+        <button id="tkClear" class="btn btn-ghost wide" style="margin-top:12px">Vaciar historial</button>`;
+
+      box.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(b.dataset.copy); toast('Copiado', false); } catch { toast('No se pudo copiar'); }
+      }));
+      box.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => go(b.dataset.open)));
+      $('#tkClear').addEventListener('click', () => { localStorage.removeItem('dg_tokens'); panels.tokens(); });
+    },
+
+    nftoken() {
+      $('#dwPanel').innerHTML = `
+        <h4>NFtoken generador</h4>
+        <p class="muted">Pegá un bloque de cookies o el NetflixId. No consume tu cuota de pool.</p>
+        <textarea id="nfRaw" class="inp ta" placeholder="NetflixId=...  ·  o JSON  ·  o Netscape"></textarea>
+        <button id="nfGo" class="btn btn-main wide" style="margin-top:10px">GENERAR ENLACES</button>
+        <div id="nfOut" class="out"></div>`;
+
+      $('#nfGo').addEventListener('click', () => withBtn($('#nfGo'), 'Generando…', async () => {
+        const raw = $('#nfRaw').value.trim();
+        if (!raw) return toast('Pegá una cookie');
+        try {
+          const r = await api('/api/nftoken', { cookie: raw });
+          $('#nfOut').innerHTML = `
+            <div class="alert ok">Caduca: ${esc(r.caduca)}</div>
+            <a class="lnk" href="${esc(r.url_web)}" target="_blank" rel="noopener">🌐 Web</a>
+            <a class="lnk" href="${esc(r.url_app)}" target="_blank" rel="noopener">📱 Móvil</a>
+            <a class="lnk" href="${esc(r.url_tv)}" target="_blank" rel="noopener">📺 TV</a>`;
+          registrarToken('netflix-manual', r.url_web);
+        } catch (e) { $('#nfOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; }
+      }));
+    },
+
+    bin() {
+      $('#dwPanel').innerHTML = `
+        <h4>Chequeador de BINs</h4>
+        <p class="muted">Primeros 6 u 8 dígitos de la tarjeta.</p>
+        <div class="row">
+          <input id="binIn" class="inp" inputmode="numeric" placeholder="45717360" maxlength="8">
+          <button id="binGo" class="btn btn-ghost">Consultar</button>
+        </div>
+        <div id="binOut" class="out"></div>`;
+
+      $('#binIn').addEventListener('input', e => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 8);
+      });
+
+      $('#binGo').addEventListener('click', () => withBtn($('#binGo'), '…', async () => {
+        const bin = $('#binIn').value.trim();
+        if (bin.length < 6) return toast('El BIN necesita al menos 6 dígitos');
+        $('#binOut').innerHTML = '<div class="muted">Consultando…</div>';
+        let d = null;
+        try {
+          const r = await fetch('https://lookup.binlist.net/' + bin, { headers: { 'Accept-Version': '3' } });
+          if (r.ok) d = await r.json();
+        } catch {}
+        if (!d) {
+          try {
+            const r = await api('/api/bin?bin=' + bin, {}, { method: 'GET' });
+            d = r.data;
+          } catch (e) {
+            $('#binOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`;
+            return;
+          }
+        }
+        $('#binOut').innerHTML = `
+          <table class="mini">
+            <tr><th>Marca</th><td>${esc(d.scheme || '—')} / ${esc(d.brand || '—')}</td></tr>
+            <tr><th>Tipo</th><td>${esc(d.type || '—')}${d.prepaid ? ' · prepaga' : ''}</td></tr>
+            <tr><th>Nivel</th><td>${esc(d.brand || '—')}</td></tr>
+            <tr><th>Banco</th><td>${esc(d.bank?.name || '—')}</td></tr>
+            <tr><th>País</th><td>${esc(d.country?.emoji || '')} ${esc(d.country?.name || '—')} (${esc(d.country?.currency || '—')})</td></tr>
+          </table>`;
+      }));
+    }
+  };
+
+  function registrarToken(platform, url) {
+    const lista = JSON.parse(localStorage.getItem('dg_tokens') || '[]');
+    lista.push({ platform, url, ts: Date.now() });
+    localStorage.setItem('dg_tokens', JSON.stringify(lista.slice(-60)));
+  }
+
+  (async () => {
+    if (!session) return show(1);
+    try {
+      await loadPlatforms();
+      await loadMe();
+      show(3);
+    } catch {
+      show(1);
+    }
+  })();
 })();
