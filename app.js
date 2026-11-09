@@ -5,12 +5,18 @@
   const $ = s => document.querySelector(s);
   const toastEl = $('#toast');
 
-  let session = sessionStorage.getItem('dg_session') || '';
+  if (!localStorage.getItem('dg_session') && sessionStorage.getItem('dg_session')) {
+    localStorage.setItem('dg_session', sessionStorage.getItem('dg_session'));
+    sessionStorage.removeItem('dg_session');
+  }
+
+  let session = localStorage.getItem('dg_session') || '';
   let me = null;
   let otpToken = '';
   let tgId = '';
   let platforms = [];
   let lastUrl = '';
+  let selected = null;
 
   function toast(msg, isErr = true) {
     toastEl.textContent = msg;
@@ -65,7 +71,7 @@
   function logout() {
     session = '';
     me = null;
-    sessionStorage.removeItem('dg_session');
+    localStorage.removeItem('dg_session');
     closeDrawer();
     show(1);
   }
@@ -140,7 +146,7 @@
     try {
       const r = await api('/api/verify', { token: otpToken, code }, { auth: false });
       session = r.session;
-      sessionStorage.setItem('dg_session', session);
+      localStorage.setItem('dg_session', session);
       otpLogin.clear();
       me = r.user;
       await loadPlatforms();
@@ -240,18 +246,30 @@
       const el = document.createElement('div');
       el.className = 'plat';
       el.innerHTML = `<div class="ic" style="background:${esc(p.color)}">${esc(p.short)}</div>
-        <div><b></b><small>${p.direct ? '⚡ Acceso directo' : 'Disponible'}</small></div>
-        <div class="radio"></div>`;
+        <div class="txt"><b></b><small>⚡ Acceso directo</small></div>
+        <div class="radio">›</div>`;
       el.querySelector('b').textContent = p.name;
       el.addEventListener('click', () => {
         if (me.status !== 'active') return toast('Tu cuenta espera aprobación del administrador');
-        p.direct ? directNetflix() : openTvPanel(p);
+        quickAccess(p);
       });
       box.appendChild(el);
     });
   }
 
-  /* ---------- carga directa Netflix ---------- */
+  /* ---------- acceso rápido ---------- */
+
+  function quickAccess(p) {
+    if (p.id === 'netflix') return directNetflix();
+    openTvPanel(p, true);
+  }
+
+  function go(url) {
+    const bridge = window.AndroidBridge || window.webkit?.messageHandlers?.dgflix;
+    if (bridge && typeof bridge.openUrl === 'function') bridge.openUrl(url);
+    else if (bridge && typeof bridge.postMessage === 'function') bridge.postMessage(JSON.stringify({ action: 'open', url }));
+    else window.location.href = url;
+  }
 
   async function directNetflix() {
     show(5);
@@ -262,31 +280,24 @@
 
     try {
       const r = await api('/api/nftoken', {});
-      lastUrl = r.url_web;
+      lastUrl = r.url_tv;
       $('#directBox').innerHTML =
         `✅ Sesión generada<br><small class="muted">Caduca: ${esc(r.caduca)} · archivo ${esc(r.file)}</small>`;
-      $('#directLog').textContent = `web:  ${r.url_web}\napp:  ${r.url_app}\ntv:   ${r.url_tv}`;
+      $('#directLog').textContent = `tv:    ${r.url_tv}\nweb:   ${r.url_web}\nmóvil: ${r.url_app}`;
       $('#directLog').hidden = false;
       $('#btnDirectOpen').disabled = false;
       $('#btnDirectCopy').hidden = false;
 
       setTimeout(() => {
-        if (!$('#btnDirectOpen').disabled) go(r.url_web);
-      }, 1200);
+        if (!$('#btnDirectOpen').disabled) go(r.url_tv);
+      }, 1000);
 
-      registrarToken('netflix', r.url_web);
+      registrarToken('netflix', r.url_tv);
       await loadMe();
     } catch (e) {
       $('#directBox').textContent = '⚠️ ' + e.message;
       if (e.code === 'INACTIVE') setTimeout(() => { renderDashboard(); show(3); }, 1600);
     }
-  }
-
-  function go(url) {
-    const bridge = window.AndroidBridge || window.webkit?.messageHandlers?.dgflix;
-    if (bridge && typeof bridge.openUrl === 'function') bridge.openUrl(url);
-    else if (bridge && typeof bridge.postMessage === 'function') bridge.postMessage(JSON.stringify({ action: 'open', url }));
-    else window.location.href = url;
   }
 
   $('#btnDirectOpen').addEventListener('click', () => lastUrl && go(lastUrl));
@@ -299,18 +310,26 @@
 
   /* ---------- panel TV ---------- */
 
-  let selected = null;
-
-  function openTvPanel(p) {
+  function openTvPanel(p, autoOpen = false) {
     selected = p;
     const tv = $('#tvCode');
     tv.value = '';
     tv.maxLength = p.codeLength || 8;
     tv.placeholder = `Código de ${p.codeLength || 8} caracteres`;
     $('#btnActivate').disabled = true;
+    $('#tvTitle').textContent = p.name;
     show(6);
     tv.focus();
+
+    if (autoOpen && p.tvUrl) {
+      registrarToken(p.id, p.tvUrl);
+      setTimeout(() => go(p.tvUrl), 900);
+    }
   }
+
+  $('#btnReopen').addEventListener('click', () => {
+    if (selected?.tvUrl) go(selected.tvUrl);
+  });
 
   $('#tvCode').addEventListener('input', e => {
     e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -430,10 +449,10 @@
           const r = await api('/api/nftoken', { cookie: raw });
           $('#nfOut').innerHTML = `
             <div class="alert ok">Caduca: ${esc(r.caduca)}</div>
+            <a class="lnk" href="${esc(r.url_tv)}" target="_blank" rel="noopener">📺 Activación TV</a>
             <a class="lnk" href="${esc(r.url_web)}" target="_blank" rel="noopener">🌐 Web</a>
-            <a class="lnk" href="${esc(r.url_app)}" target="_blank" rel="noopener">📱 Móvil</a>
-            <a class="lnk" href="${esc(r.url_tv)}" target="_blank" rel="noopener">📺 TV</a>`;
-          registrarToken('netflix-manual', r.url_web);
+            <a class="lnk" href="${esc(r.url_app)}" target="_blank" rel="noopener">📱 Móvil</a>`;
+          registrarToken('netflix-manual', r.url_tv);
         } catch (e) { $('#nfOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; }
       }));
     },
