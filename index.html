@@ -10,7 +10,12 @@
 <body>
 <main id="app">
 
-  <!-- PASO 1 -->
+  <header id="topbar" class="topbar" hidden>
+    <button id="btnMenu" class="hamb" aria-label="Menú">☰</button>
+    <span class="tb-title">DanGel Flix</span>
+    <button id="btnHome" class="hamb" aria-label="Inicio">⌂</button>
+  </header>
+
   <section class="screen" data-screen="1">
     <div class="brand">
       <div class="logo tg">✈</div>
@@ -25,54 +30,87 @@
         <button id="btnSend" class="btn btn-ghost" type="button">Enviar código</button>
       </div>
       <p class="help">¿No conocés tu ID?<br>Entrá a <b>@StreamsHub_bot</b>, tocá <code>/start</code> y después <code>/id</code>.</p>
-      <button id="btnVerify" class="btn btn-main" type="button" disabled>VERIFICAR</button>
     </div>
   </section>
 
-  <!-- PASO 2 -->
   <section class="screen" data-screen="2" hidden>
     <div class="brand">
       <div class="logo tg">✈</div>
-      <h1>DanGel Flix</h1>
-      <p>Revisá tu Telegram</p>
+      <h1>Revisá tu Telegram</h1>
+      <p>Te enviamos un código</p>
     </div>
     <div class="card">
       <div class="steps"><i class="on"></i><i></i><i></i></div>
       <label class="lbl">TU ID DE TELEGRAM</label>
-      <div class="row">
-        <input id="tgIdShow" class="inp" readonly>
-      </div>
+      <div class="row"><input id="tgIdShow" class="inp" readonly></div>
       <label class="lbl">CÓDIGO DE 6 DÍGITOS</label>
       <div id="otpLogin" class="otp">
-        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
+        <input type="text" inputmode="numeric" maxlength="1">
         <input type="text" inputmode="numeric" maxlength="1">
         <input type="text" inputmode="numeric" maxlength="1">
         <input type="text" inputmode="numeric" maxlength="1">
         <input type="text" inputmode="numeric" maxlength="1">
         <input type="text" inputmode="numeric" maxlength="1">
       </div>
-      <p class="help">El código vence en 5 minutos. Si no llegó, pedí otro.</p>
+      <p class="help">El código vence en 5 minutos.</p>
       <button id="btnLogin" class="btn btn-main" type="button" disabled>VERIFICAR</button>
       <button id="btnResend" class="btn btn-ghost wide" type="button" style="margin-top:10px">Reenviar código</button>
     </div>
   </section>
 
-  <!-- PASO 3 -->
   <section class="screen" data-screen="3" hidden>
+    <div class="card">
+      <div class="me">
+        <div id="meAvatar" class="avatar">?</div>
+        <div class="me-info">
+          <b id="meName">—</b>
+          <small id="meUser">—</small>
+        </div>
+        <span id="meStatus" class="pill">—</span>
+      </div>
+
+      <div id="meAlert" class="alert" hidden></div>
+
+      <h3 class="sec">Consumo de cookies</h3>
+      <div id="meUsage" class="usage"><div class="muted">Sin consumos registrados</div></div>
+
+      <div class="row" style="margin-top:16px">
+        <button id="btnRefresh" class="btn btn-ghost">Actualizar</button>
+        <button id="btnGoPlats" class="btn btn-main" type="button">VER PLATAFORMAS</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="4" hidden>
     <div class="brand">
       <div class="logo film">🎬</div>
       <h1>Elegí la plataforma</h1>
-      <p>Seleccioná la cuenta que querés activar</p>
+      <p>Netflix abre directo con tu sesión</p>
     </div>
     <div class="card">
       <div class="steps"><i class="done"></i><i class="on"></i><i></i></div>
       <div id="plats" class="plats"><span class="muted">Cargando…</span></div>
-      <button id="btnPlat" class="btn btn-main" type="button" disabled>CONTINUAR</button>
     </div>
   </section>
 
-  <!-- PASO 4 -->
-  <section class="screen" data-screen="4" hidden>
+  <section class="screen" data-screen="5" hidden>
+    <div class="brand">
+      <div class="logo key">⚡</div>
+      <h1>Generando acceso</h1>
+      <p>Preparando tu sesión de Netflix</p>
+    </div>
+    <div class="card">
+      <div id="directBox" class="muted">Conectando…</div>
+      <pre id="directLog" class="log" hidden></pre>
+      <div class="row" style="margin-top:14px">
+        <button id="btnDirectOpen" class="btn btn-main" type="button" disabled>ABRIR NETFLIX</button>
+      </div>
+      <button id="btnDirectCopy" class="btn btn-ghost wide" type="button" style="margin-top:10px" hidden>Copiar enlace</button>
+      <button id="btnDirectBack" class="btn btn-ghost wide" type="button" style="margin-top:10px">Volver</button>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="6" hidden>
     <div class="brand">
       <div class="logo key">🔑</div>
       <h1>Ingresá el código</h1>
@@ -80,14 +118,14 @@
     </div>
     <div class="card">
       <div class="steps"><i class="done"></i><i class="done"></i><i class="on"></i></div>
-      <p class="mid">Código que muestra la pantalla de tu TV.<br><b>No cierres esta pantalla.</b></p>
+      <p class="mid">Código que muestra la pantalla de tu TV.</p>
       <input id="tvCode" class="inp tv" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Código de la TV">
       <button id="btnActivate" class="btn btn-main" type="button" disabled>ACTIVAR</button>
+      <button id="btnTvBack" class="btn btn-ghost wide" type="button" style="margin-top:10px">Volver</button>
     </div>
   </section>
 
-  <!-- PASO 5 -->
-  <section class="screen" data-screen="5" hidden>
+  <section class="screen" data-screen="7" hidden>
     <div class="brand">
       <div class="logo key" id="resIcon">✅</div>
       <h1 id="resTitle">Listo</h1>
@@ -95,13 +133,36 @@
     </div>
     <div class="card">
       <pre id="resLog" class="log"></pre>
-      <p class="mid">Reiniciando en <b id="countdown">8</b>…</p>
-      <button id="btnAgain" class="btn btn-main" type="button">ACTIVAR OTRA CUENTA</button>
+      <button id="btnAgain" class="btn btn-main" type="button">VOLVER AL INICIO</button>
     </div>
   </section>
 
   <div id="toast" class="toast" hidden></div>
 </main>
+
+<div id="scrim" class="scrim" hidden></div>
+<aside id="drawer" class="drawer" hidden>
+  <div class="drawer-head">
+    <div class="logo sm">🎬</div>
+    <div style="flex:1;min-width:0">
+      <b id="dwName">—</b><br>
+      <small id="dwStatus" class="muted">—</small>
+    </div>
+    <button id="dwClose" class="hamb">✕</button>
+  </div>
+
+  <nav class="drawer-nav">
+    <button data-panel="cookies">🍪 Opciones de cookies</button>
+    <button data-panel="tokens">🔑 Opción de tokens</button>
+    <button data-panel="nftoken">⚡ NFtoken generador</button>
+    <button data-panel="bin">💳 Chequeador de BINs</button>
+  </nav>
+
+  <div id="dwPanel" class="drawer-panel"><div class="muted">Elegí una opción</div></div>
+
+  <button id="dwLogout" class="btn btn-ghost wide" style="margin-top:auto">Cerrar sesión</button>
+</aside>
+
 <script src="app.js"></script>
 </body>
 </html>
