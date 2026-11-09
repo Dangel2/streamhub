@@ -17,6 +17,7 @@
   let platforms = [];
   let lastUrl = '';
   let selected = null;
+  let volverA = 3;
 
   function toast(msg, isErr = true) {
     toastEl.textContent = msg;
@@ -30,7 +31,7 @@
     document.querySelectorAll('.screen').forEach(s => {
       s.hidden = s.dataset.screen !== String(n);
     });
-    $('#topbar').hidden = ![3, 4, 5, 6].includes(Number(n));
+    $('#topbar').hidden = ![3, 4, 5, 6, 8, 9].includes(Number(n));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -74,6 +75,10 @@
     localStorage.removeItem('dg_session');
     closeDrawer();
     show(1);
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   /* ---------- OTP ---------- */
@@ -170,7 +175,14 @@
   function renderDashboard() {
     if (!me) return;
     const nombre = me.first_name || me.username || 'Usuario';
-    $('#meAvatar').textContent = nombre.trim().charAt(0).toUpperCase() || '?';
+    const av = $('#meAvatar');
+
+    if (me.photo_url) {
+      av.innerHTML = `<img src="${esc(me.photo_url)}" alt="">`;
+    } else {
+      av.textContent = nombre.trim().charAt(0).toUpperCase() || '?';
+    }
+
     $('#meName').textContent = nombre;
     $('#meUser').textContent = me.username ? '@' + me.username : 'ID ' + me.tg;
     $('#dwName').textContent = nombre;
@@ -198,10 +210,6 @@
   function platformName(id) {
     const p = platforms.find(x => x.id === id);
     return p ? p.name : id;
-  }
-
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   $('#btnRefresh').addEventListener('click', () => withBtn($('#btnRefresh'), '…', async () => {
@@ -245,7 +253,10 @@
     platforms.forEach(p => {
       const el = document.createElement('div');
       el.className = 'plat';
-      el.innerHTML = `<div class="ic" style="background:${esc(p.color)}">${esc(p.short)}</div>
+      el.innerHTML = `<div class="ic" style="background:${esc(p.color)}">
+          <span>${esc(p.short)}</span>
+          <img src="${esc(p.id)}.png" alt="" onerror="this.remove()">
+        </div>
         <div class="txt"><b></b><small>⚡ Acceso directo</small></div>
         <div class="radio">›</div>`;
       el.querySelector('b').textContent = p.name;
@@ -318,6 +329,7 @@
     tv.placeholder = `Código de ${p.codeLength || 8} caracteres`;
     $('#btnActivate').disabled = true;
     $('#tvTitle').textContent = p.name;
+    $('#tvLogo').innerHTML = `<img src="${esc(p.id)}.png" alt="🔑">`;
     show(6);
     tv.focus();
 
@@ -356,6 +368,85 @@
 
   $('#btnAgain').addEventListener('click', () => { renderDashboard(); show(3); });
 
+  /* ---------- NFtoken (pantalla) ---------- */
+
+  $('#nfGo').addEventListener('click', () => withBtn($('#nfGo'), 'Generando…', async () => {
+    const raw = $('#nfRaw').value.trim();
+    if (!raw) return toast('Pegá una cookie');
+    try {
+      const r = await api('/api/nftoken', { cookie: raw });
+      $('#nfOut').innerHTML = `
+        <div class="alert ok">Caduca: ${esc(r.caduca)}</div>
+        <a class="lnk" href="${esc(r.url_tv)}" target="_blank" rel="noopener">📺 Activación TV</a>
+        <a class="lnk" href="${esc(r.url_web)}" target="_blank" rel="noopener">🌐 Web</a>
+        <a class="lnk" href="${esc(r.url_app)}" target="_blank" rel="noopener">📱 Móvil</a>`;
+      registrarToken('netflix-manual', r.url_tv);
+    } catch (e) { $('#nfOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; }
+  }));
+
+  $('#nfBack').addEventListener('click', () => show(volverA));
+
+  /* ---------- BIN (pantalla) ---------- */
+
+  $('#binIn').addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 8);
+  });
+
+  function fila(etiqueta, valor) {
+    return `<tr><th>${esc(etiqueta)}</th><td>${valor || '—'}</td></tr>`;
+  }
+
+  $('#binGo').addEventListener('click', () => withBtn($('#binGo'), '…', async () => {
+    const bin = $('#binIn').value.trim();
+    if (bin.length < 6) return toast('El BIN necesita al menos 6 dígitos');
+
+    $('#binOut').innerHTML = '<div class="muted">Consultando…</div>';
+    let d = null;
+    try {
+      const r = await fetch('https://lookup.binlist.net/' + bin, { headers: { 'Accept-Version': '3' } });
+      if (r.ok) d = await r.json();
+    } catch {}
+
+    if (!d) {
+      try {
+        const r = await api('/api/bin?bin=' + bin, {}, { method: 'GET' });
+        d = r.data;
+      } catch (e) {
+        $('#binOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`;
+        return;
+      }
+    }
+
+    const c = d.country || {};
+    const b = d.bank || {};
+    const bandera = c.alpha2
+      ? `<img class="flag" src="https://flagcdn.com/w40/${esc(c.alpha2.toLowerCase())}.png" alt="${esc(c.emoji || '')}" onerror="this.remove()"> ${esc(c.emoji || '')}`
+      : (esc(c.emoji || '—'));
+
+    $('#binOut').innerHTML = `
+      <table class="mini">
+        ${fila('BIN', esc(bin))}
+        ${fila('Marca', esc(d.scheme))}
+        ${fila('Red / nivel', esc(d.brand))}
+        ${fila('Tipo', esc(d.type))}
+        ${fila('Prepaga', d.prepaid === true ? 'Sí' : d.prepaid === false ? 'No' : '—')}
+        ${fila('País', `${bandera} ${esc(c.name || '')}`)}
+        ${fila('Código país', esc(c.alpha2))}
+        ${fila('Numérico', esc(c.numeric))}
+        ${fila('Moneda', esc(c.currency))}
+        ${fila('Latitud', esc(c.latitude))}
+        ${fila('Longitud', esc(c.longitude))}
+        ${fila('Banco', esc(b.name))}
+        ${fila('Web del banco', b.url ? `<a class="lnk-in" href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.url)}</a>` : '—')}
+        ${fila('Teléfono', esc(b.phone))}
+        ${fila('Ciudad', esc(b.city))}
+      </table>
+      <h4 class="sec" style="margin-top:16px">Respuesta completa</h4>
+      <pre class="log">${esc(JSON.stringify(d, null, 2))}</pre>`;
+  }));
+
+  $('#binBack').addEventListener('click', () => show(volverA));
+
   /* ---------- drawer ---------- */
 
   function openDrawer() {
@@ -379,13 +470,21 @@
 
   document.querySelectorAll('.drawer-nav button').forEach(b => {
     b.addEventListener('click', () => {
+      const destino = b.dataset.panel;
       document.querySelectorAll('.drawer-nav button').forEach(x => x.classList.remove('on'));
       b.classList.add('on');
-      panels[b.dataset.panel]();
+
+      if (destino === 'nftoken' || destino === 'bin') {
+        volverA = document.querySelector('[data-screen="3"]').hidden ? 4 : 3;
+        closeDrawer();
+        show(destino === 'nftoken' ? 8 : 9);
+        return;
+      }
+      panels[destino]();
     });
   });
 
-  /* ---------- paneles ---------- */
+  /* ---------- paneles del drawer ---------- */
 
   const panels = {
     async cookies() {
@@ -432,72 +531,6 @@
       }));
       box.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => go(b.dataset.open)));
       $('#tkClear').addEventListener('click', () => { localStorage.removeItem('dg_tokens'); panels.tokens(); });
-    },
-
-    nftoken() {
-      $('#dwPanel').innerHTML = `
-        <h4>NFtoken generador</h4>
-        <p class="muted">Pegá un bloque de cookies o el NetflixId. No consume tu cuota de pool.</p>
-        <textarea id="nfRaw" class="inp ta" placeholder="NetflixId=...  ·  o JSON  ·  o Netscape"></textarea>
-        <button id="nfGo" class="btn btn-main wide" style="margin-top:10px">GENERAR ENLACES</button>
-        <div id="nfOut" class="out"></div>`;
-
-      $('#nfGo').addEventListener('click', () => withBtn($('#nfGo'), 'Generando…', async () => {
-        const raw = $('#nfRaw').value.trim();
-        if (!raw) return toast('Pegá una cookie');
-        try {
-          const r = await api('/api/nftoken', { cookie: raw });
-          $('#nfOut').innerHTML = `
-            <div class="alert ok">Caduca: ${esc(r.caduca)}</div>
-            <a class="lnk" href="${esc(r.url_tv)}" target="_blank" rel="noopener">📺 Activación TV</a>
-            <a class="lnk" href="${esc(r.url_web)}" target="_blank" rel="noopener">🌐 Web</a>
-            <a class="lnk" href="${esc(r.url_app)}" target="_blank" rel="noopener">📱 Móvil</a>`;
-          registrarToken('netflix-manual', r.url_tv);
-        } catch (e) { $('#nfOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; }
-      }));
-    },
-
-    bin() {
-      $('#dwPanel').innerHTML = `
-        <h4>Chequeador de BINs</h4>
-        <p class="muted">Primeros 6 u 8 dígitos de la tarjeta.</p>
-        <div class="row">
-          <input id="binIn" class="inp" inputmode="numeric" placeholder="45717360" maxlength="8">
-          <button id="binGo" class="btn btn-ghost">Consultar</button>
-        </div>
-        <div id="binOut" class="out"></div>`;
-
-      $('#binIn').addEventListener('input', e => {
-        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 8);
-      });
-
-      $('#binGo').addEventListener('click', () => withBtn($('#binGo'), '…', async () => {
-        const bin = $('#binIn').value.trim();
-        if (bin.length < 6) return toast('El BIN necesita al menos 6 dígitos');
-        $('#binOut').innerHTML = '<div class="muted">Consultando…</div>';
-        let d = null;
-        try {
-          const r = await fetch('https://lookup.binlist.net/' + bin, { headers: { 'Accept-Version': '3' } });
-          if (r.ok) d = await r.json();
-        } catch {}
-        if (!d) {
-          try {
-            const r = await api('/api/bin?bin=' + bin, {}, { method: 'GET' });
-            d = r.data;
-          } catch (e) {
-            $('#binOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`;
-            return;
-          }
-        }
-        $('#binOut').innerHTML = `
-          <table class="mini">
-            <tr><th>Marca</th><td>${esc(d.scheme || '—')} / ${esc(d.brand || '—')}</td></tr>
-            <tr><th>Tipo</th><td>${esc(d.type || '—')}${d.prepaid ? ' · prepaga' : ''}</td></tr>
-            <tr><th>Nivel</th><td>${esc(d.brand || '—')}</td></tr>
-            <tr><th>Banco</th><td>${esc(d.bank?.name || '—')}</td></tr>
-            <tr><th>País</th><td>${esc(d.country?.emoji || '')} ${esc(d.country?.name || '—')} (${esc(d.country?.currency || '—')})</td></tr>
-          </table>`;
-      }));
     }
   };
 
