@@ -190,3 +190,21 @@ body {
 table.mini { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 table.mini th { text-align: left; color: var(--dim); font-size: 10.5px; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 table.mini td { padding: 7px 8px; border-bottom: 1px solid rgba(51,25,79,.5); }
+
+.logo img { width: 100%; height: 100%; object-fit: contain; border-radius: 22px; }
+.logo.sm img { border-radius: 13px; }
+
+.avatar { overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.plat .ic { position: relative; overflow: hidden; }
+.plat .ic img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; background: #0d0618;
+}
+
+.out { margin-top: 14px; }
+.flag { width: 26px; height: 18px; object-fit: cover; border-radius: 3px; vertical-align: -3px; margin-right: 6px; }
+.lnk-in { color: #cbb4ec; word-break: break-all; }
+
+.inp.ta { min-height: 120px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; padding: 12px; resize: vertical; }
