@@ -29,7 +29,7 @@
         <input id="tgId" class="inp" inputmode="numeric" autocomplete="off" placeholder="Ej: 123456789">
         <button id="btnSend" class="btn btn-ghost" type="button">Enviar código</button>
       </div>
-      <p class="help">¿No conocés tu ID?<br>Entrá a <b>@StreamsHub_bot</b>, tocá <code>/start</code> y después <code>/id</code>.</p>
+      <p class="help">Solo se pide una vez por navegador.<br>¿No conocés tu ID? Entrá a <b>@StreamsHub_bot</b>, tocá <code>/start</code> y después <code>/id</code>.</p>
     </div>
   </section>
 
@@ -85,7 +85,7 @@
     <div class="brand">
       <div class="logo film">🎬</div>
       <h1>Elegí la plataforma</h1>
-      <p>Netflix abre directo con tu sesión</p>
+      <p>Acceso directo a la activación por TV</p>
     </div>
     <div class="card">
       <div class="steps"><i class="done"></i><i class="on"></i><i></i></div>
@@ -96,14 +96,14 @@
   <section class="screen" data-screen="5" hidden>
     <div class="brand">
       <div class="logo key">⚡</div>
-      <h1>Generando acceso</h1>
-      <p>Preparando tu sesión de Netflix</p>
+      <h1>Abriendo Netflix</h1>
+      <p>Pantalla de activación por TV</p>
     </div>
     <div class="card">
       <div id="directBox" class="muted">Conectando…</div>
       <pre id="directLog" class="log" hidden></pre>
       <div class="row" style="margin-top:14px">
-        <button id="btnDirectOpen" class="btn btn-main" type="button" disabled>ABRIR NETFLIX</button>
+        <button id="btnDirectOpen" class="btn btn-main" type="button" disabled>ABRIR DE NUEVO</button>
       </div>
       <button id="btnDirectCopy" class="btn btn-ghost wide" type="button" style="margin-top:10px" hidden>Copiar enlace</button>
       <button id="btnDirectBack" class="btn btn-ghost wide" type="button" style="margin-top:10px">Volver</button>
@@ -113,14 +113,15 @@
   <section class="screen" data-screen="6" hidden>
     <div class="brand">
       <div class="logo key">🔑</div>
-      <h1>Ingresá el código</h1>
-      <p>Pegalo tal cual aparece en tu TV</p>
+      <h1 id="tvTitle">Ingresá el código</h1>
+      <p id="tvSub">Pegalo tal cual aparece en tu TV</p>
     </div>
     <div class="card">
       <div class="steps"><i class="done"></i><i class="done"></i><i class="on"></i></div>
-      <p class="mid">Código que muestra la pantalla de tu TV.</p>
+      <p class="mid">Ya te abrimos la página de activación.<br><b>Volvé acá y pegá el código que muestra.</b></p>
       <input id="tvCode" class="inp tv" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Código de la TV">
       <button id="btnActivate" class="btn btn-main" type="button" disabled>ACTIVAR</button>
+      <button id="btnReopen" class="btn btn-ghost wide" type="button" style="margin-top:10px">Abrir la página otra vez</button>
       <button id="btnTvBack" class="btn btn-ghost wide" type="button" style="margin-top:10px">Volver</button>
     </div>
   </section>
