@@ -92,12 +92,12 @@ body {
 .plats::-webkit-scrollbar-thumb { background: rgba(160, 130, 210, .3); border-radius: 6px; }
 
 .plat { display: flex; align-items: center; gap: 13px; padding: 13px; border: 1px solid var(--line); border-radius: 16px; background: rgba(14, 8, 26, .6); cursor: pointer; }
-.plat.sel { border-color: var(--acc); background: rgba(168, 85, 247, .13); }
+.plat:active { transform: scale(.985); background: rgba(168, 85, 247, .12); }
 .plat .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; font-size: 17px; color: #fff; flex: none; }
+.plat .txt { flex: 1; min-width: 0; }
 .plat b { display: block; font-size: 15px; }
 .plat small { color: var(--green); font-size: 12px; font-weight: 600; }
-.plat .radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(170, 140, 215, .35); margin-left: auto; flex: none; }
-.plat.sel .radio { border-color: var(--acc); box-shadow: inset 0 0 0 4px var(--acc); }
+.plat .radio { margin-left: auto; flex: none; color: var(--dim); font-size: 22px; line-height: 1; }
 
 .log { background: rgba(8, 4, 16, .72); border: 1px solid var(--line); border-radius: 14px; padding: 14px; font: 12px/1.6 ui-monospace, Menlo, monospace; color: #b9a6d8; white-space: pre-wrap; word-break: break-all; margin: 0 0 16px; max-height: 44vh; overflow: auto; }
 
