@@ -2,15 +2,15 @@
   "background_color": "#160b28",
   "dir": "ltr",
   "display": "standalone",
-  "name": "dangel2.github",
+  "name": "DangelFlix",
   "orientation": "any",
-  "scope": "/",
-  "short_name": "dangel2.github",
-  "start_url": "/",
+  "scope": "/streamhub/",
+  "short_name": "DangelFlix",
+  "start_url": "/streamhub/",
   "theme_color": "#160b28",
   "categories": [
-    "development"
+    "entertainment"
   ],
-  "id": "com.dangel.unirex",
+  "id": "com.dangel.streamhub",
   "description": "Plataforma de streaming y entretenimiento de DangelFlix"
 }
