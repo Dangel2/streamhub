@@ -1,0 +1,9 @@
+const PLATFORMS = [
+  { id: "netflix",     name: "Netflix",     short: "N",  codeLength: 8, color: "#E50914", direct: true, tvUrl: "https://www.netflix.com/tv2" },
+  { id: "disneyplus",  name: "Disney+",     short: "D+", codeLength: 8, color: "#7e22ce", direct: true, tvUrl: "https://www.disneyplus.com/begin" },
+  { id: "max",         name: "Max",         short: "M",  codeLength: 6, color: "#9333ea", direct: true, tvUrl: "https://auth.max.com/" },
+  { id: "primevideo",  name: "Prime Video", short: "P",  codeLength: 6, color: "#00A8E1", direct: true, tvUrl: "https://www.primevideo.com/activate" },
+  { id: "paramount",   name: "Paramount+",  short: "P+", codeLength: 6, color: "#0064FF", direct: true, tvUrl: "https://www.paramountplus.com/activate/" },
+  { id: "crunchyroll", name: "Crunchyroll", short: "C",  codeLength: 6, color: "#F47521", direct: true, tvUrl: "https://www.crunchyroll.com/activate" },
+  { id: "spotify",     name: "Spotify",     short: "S",  codeLength: 6, color: "#1DB954", direct: true, tvUrl: "https://www.spotify.com/pair" }
+];
