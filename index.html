@@ -18,7 +18,7 @@
 
   <section class="screen" data-screen="1">
     <div class="brand">
-      <div class="logo tg">✈</div>
+      <div class="logo"><img src="logo.png" alt="🎬"></div>
       <h1>DanGel Flix</h1>
       <p>Activá tu cuenta en segundos</p>
     </div>
@@ -35,7 +35,7 @@
 
   <section class="screen" data-screen="2" hidden>
     <div class="brand">
-      <div class="logo tg">✈</div>
+      <div class="logo"><img src="logo.png" alt="✈"></div>
       <h1>Revisá tu Telegram</h1>
       <p>Te enviamos un código</p>
     </div>
@@ -83,7 +83,7 @@
 
   <section class="screen" data-screen="4" hidden>
     <div class="brand">
-      <div class="logo film">🎬</div>
+      <div class="logo"><img src="logo.png" alt="🎬"></div>
       <h1>Elegí la plataforma</h1>
       <p>Acceso directo a la activación por TV</p>
     </div>
@@ -95,7 +95,7 @@
 
   <section class="screen" data-screen="5" hidden>
     <div class="brand">
-      <div class="logo key">⚡</div>
+      <div class="logo"><img src="netflix.png" alt="⚡"></div>
       <h1>Abriendo Netflix</h1>
       <p>Pantalla de activación por TV</p>
     </div>
@@ -112,7 +112,7 @@
 
   <section class="screen" data-screen="6" hidden>
     <div class="brand">
-      <div class="logo key">🔑</div>
+      <div class="logo" id="tvLogo"><img src="logo.png" alt="🔑"></div>
       <h1 id="tvTitle">Ingresá el código</h1>
       <p id="tvSub">Pegalo tal cual aparece en tu TV</p>
     </div>
@@ -128,7 +128,7 @@
 
   <section class="screen" data-screen="7" hidden>
     <div class="brand">
-      <div class="logo key" id="resIcon">✅</div>
+      <div class="logo" id="resIcon">✅</div>
       <h1 id="resTitle">Listo</h1>
       <p id="resSub">Cuenta activada correctamente</p>
     </div>
@@ -138,13 +138,46 @@
     </div>
   </section>
 
+  <section class="screen" data-screen="8" hidden>
+    <div class="brand">
+      <div class="logo"><img src="logo.png" alt="⚡"></div>
+      <h1>NFtoken generador</h1>
+      <p>Cookies → enlaces de acceso</p>
+    </div>
+    <div class="card">
+      <label class="lbl" for="nfRaw">BLOQUE DE COOKIES O NETFLIXID</label>
+      <textarea id="nfRaw" class="inp ta" placeholder="NetflixId=...  ·  o JSON  ·  o Netscape"></textarea>
+      <p class="help" style="margin-top:10px">No consume tu cuota del pool.</p>
+      <button id="nfGo" class="btn btn-main" type="button">GENERAR ENLACES</button>
+      <div id="nfOut" class="out"></div>
+      <button id="nfBack" class="btn btn-ghost wide" type="button" style="margin-top:14px">← Volver</button>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="9" hidden>
+    <div class="brand">
+      <div class="logo"><img src="logo.png" alt="💳"></div>
+      <h1>Chequeador de BINs</h1>
+      <p>Primeros 6 u 8 dígitos</p>
+    </div>
+    <div class="card">
+      <label class="lbl" for="binIn">BIN</label>
+      <div class="row">
+        <input id="binIn" class="inp" inputmode="numeric" placeholder="45717360" maxlength="8">
+        <button id="binGo" class="btn btn-ghost" type="button">Consultar</button>
+      </div>
+      <div id="binOut" class="out"></div>
+      <button id="binBack" class="btn btn-ghost wide" type="button" style="margin-top:14px">← Volver</button>
+    </div>
+  </section>
+
   <div id="toast" class="toast" hidden></div>
 </main>
 
 <div id="scrim" class="scrim" hidden></div>
 <aside id="drawer" class="drawer" hidden>
   <div class="drawer-head">
-    <div class="logo sm">🎬</div>
+    <div class="logo sm"><img src="logo.png" alt="🎬"></div>
     <div style="flex:1;min-width:0">
       <b id="dwName">—</b><br>
       <small id="dwStatus" class="muted">—</small>
