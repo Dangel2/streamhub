@@ -97,44 +97,34 @@
     <div class="brand">
       <div class="logo" id="directLogo"><img src="logo.png" alt="⚡"></div>
       <h1 id="directTitle">Abriendo</h1>
-      <p id="directSub">Pantalla de activación por TV</p>
+      <p id="directSub">Activación oficial por TV</p>
+      <div class="spinner" aria-hidden="true"></div>
     </div>
     <div class="card">
       <div id="directBox" class="muted">Conectando…</div>
-      <div class="row" style="margin-top:14px">
-        <button id="btnDirectOpen" class="btn btn-main" type="button" disabled>ABRIR DE NUEVO</button>
+      <button id="btnDirectBack" class="btn btn-ghost wide" type="button" style="margin-top:14px">Volver</button>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="10" hidden>
+    <div class="card res-card" id="resCard">
+      <div class="res-check">✅</div>
+      <div class="res-logo" id="resLogo"></div>
+      <p class="res-plat" id="resPlat"></p>
+      <h2 class="res-estado" id="resEstado">✅ Sesión generada</h2>
+
+      <div class="res-meta">
+        <div class="res-line"><b>Caduca</b><span id="resCaduca">—</span></div>
+        <div class="res-line ok"><b>Archivo</b><span id="resFile">—</span></div>
       </div>
-      <button id="btnDirectCopy" class="btn btn-ghost wide" type="button" style="margin-top:10px" hidden>Copiar enlace</button>
-      <button id="btnDirectCode" class="btn btn-ghost wide" type="button" style="margin-top:10px" hidden>Pegar código de activación</button>
-      <button id="btnDirectBack" class="btn btn-ghost wide" type="button" style="margin-top:10px">Volver</button>
-    </div>
-  </section>
 
-  <section class="screen" data-screen="6" hidden>
-    <div class="brand">
-      <div class="logo" id="tvLogo"><img src="logo.png" alt="🔑"></div>
-      <h1 id="tvTitle">Ingresá el código</h1>
-      <p id="tvSub">Pegalo tal cual aparece en tu TV</p>
-    </div>
-    <div class="card">
-      <div class="steps"><i class="done"></i><i class="done"></i><i class="on"></i></div>
-      <p class="mid">Ya te abrimos la página de activación.<br><b>Volvé acá y pegá el código que muestra.</b></p>
-      <input id="tvCode" class="inp tv" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Código de la TV">
-      <button id="btnActivate" class="btn btn-main" type="button" disabled>ACTIVAR</button>
-      <button id="btnReopen" class="btn btn-ghost wide" type="button" style="margin-top:10px">Abrir la página otra vez</button>
-      <button id="btnTvBack" class="btn btn-ghost wide" type="button" style="margin-top:10px">Volver</button>
-    </div>
-  </section>
+      <p class="res-destino" id="resDestino">Te estamos llevando a la activación oficial…</p>
 
-  <section class="screen" data-screen="7" hidden>
-    <div class="brand">
-      <div class="logo" id="resIcon">✅</div>
-      <h1 id="resTitle">Listo</h1>
-      <p id="resSub">Cuenta activada correctamente</p>
-    </div>
-    <div class="card">
-      <pre id="resLog" class="log"></pre>
-      <button id="btnAgain" class="btn btn-main" type="button">VOLVER AL INICIO</button>
+      <div class="row" style="margin-top:16px">
+        <button id="btnResOpen" class="btn btn-main" type="button">IR A LA ACTIVACIÓN</button>
+      </div>
+      <button id="btnResCopy" class="btn btn-ghost wide" type="button" style="margin-top:10px">Copiar enlace</button>
+      <button id="btnResBack" class="btn btn-ghost wide" type="button" style="margin-top:10px">Volver</button>
     </div>
   </section>
 
@@ -156,7 +146,7 @@
 
   <section class="screen" data-screen="9" hidden>
     <div class="brand">
-      <div class="logo"><img src="bin.png" alt="💳"></div>
+      <div class="logo"><img src="logo.png" alt="💳"></div>
       <h1>Chequeador de BINs</h1>
       <p>Primeros 6 u 8 dígitos</p>
     </div>
