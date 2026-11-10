@@ -32,7 +32,7 @@
     document.querySelectorAll('.screen').forEach(s => {
       s.hidden = s.dataset.screen !== String(n);
     });
-    $('#topbar').hidden = ![3, 4, 5, 6, 8, 9].includes(Number(n));
+    $('#topbar').hidden = ![3, 4, 5, 8, 9, 10].includes(Number(n));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -281,7 +281,7 @@
     });
   }
 
-  /* ---------- acceso directo unificado ---------- */
+  /* ---------- acceso directo a la web oficial de activación ---------- */
 
   function quickAccess(p) {
     directAccess(p);
@@ -298,103 +298,59 @@
     selected = p;
     lastUrl = '';
 
-    const logoBox = $('#directLogo');
-    logoBox.innerHTML = `<img src="${esc(p.id)}.png" alt="⚡" onerror="this.remove()">`;
+    $('#directLogo').innerHTML = `<img src="${esc(p.id)}.png" alt="⚡" onerror="this.remove()">`;
     $('#directTitle').textContent = 'Abriendo ' + p.name;
-    $('#directSub').textContent = 'Pantalla de activación por TV';
-
+    $('#directSub').textContent = 'Activación oficial por TV';
+    $('#directBox').className = 'muted';
+    $('#directBox').textContent = 'Tomando una cookie del pool y generando sesión…';
     show(5);
-
-    const box = $('#directBox');
-    box.className = 'muted';
-    box.textContent = 'Solicitando cookie activa y generando token…';
-    $('#btnDirectOpen').disabled = true;
-    $('#btnDirectCopy').hidden = true;
-    $('#btnDirectCode').hidden = true;
 
     try {
       const r = await api('/api/nftoken', { platform: p.id });
+
+      if (!r.url_tv) throw new Error('El administrador no configuró la URL de activación de esta plataforma');
+
       lastUrl = r.url_tv;
-      selected.tvUrl = r.url_tv;
-
-      const estado = r.caduca
-        ? `Sesión válida hasta ${esc(r.caduca)}`
-        : 'Sesión activa';
-
-      box.className = '';
-      box.innerHTML = `<div class="alert ok">✅ ¡Aprobada!<br><small class="muted">${estado}</small></div>`;
-
-      $('#btnDirectOpen').disabled = false;
-      $('#btnDirectCopy').hidden = false;
-      $('#btnDirectCode').hidden = false;
-
-      setTimeout(() => {
-        if (!$('#btnDirectOpen').disabled) go(r.url_tv);
-      }, 1000);
-
+      pintarResultado(p, r);
       registrarToken(p.id, r.url_tv);
-      await loadMe();
+      loadMe().catch(() => {});
+
+      setTimeout(() => { if (lastUrl) go(lastUrl); }, 1000);
     } catch (e) {
-      box.className = 'muted';
-      box.textContent = '⚠️ ' + e.message;
-      if (e.code === 'INACTIVE') setTimeout(() => { renderDashboard(); show(3); }, 1600);
+      $('#directBox').className = '';
+      $('#directBox').innerHTML = `<div class="alert bad">⚠️ ${esc(e.message)}</div>`;
+      if (e.code === 'INACTIVE') setTimeout(() => { renderDashboard(); show(3); }, 1700);
     }
   }
 
-  $('#btnDirectOpen').addEventListener('click', () => lastUrl && go(lastUrl));
-  $('#btnDirectCopy').addEventListener('click', async () => {
+  function pintarResultado(p, r) {
+    const card = $('#resCard');
+    card.style.setProperty('--accent', p.color || '#22c55e');
+
+    const logo = $('#resLogo');
+    logo.innerHTML = `<span class="fb">${esc(p.short || '')}</span>
+      <img src="${esc(p.id)}.png" alt="" onerror="this.remove()">`;
+
+    $('#resPlat').textContent = p.name;
+    $('#resEstado').textContent = '✅ Sesión generada';
+    $('#resCaduca').textContent = r.caduca || 'Sin fecha de caducidad';
+    $('#resFile').textContent = r.file || 'archivo de sesión';
+    $('#resDestino').textContent = 'Te estamos llevando a la activación oficial…';
+
+    show(10);
+  }
+
+  $('#btnDirectBack').addEventListener('click', () => { renderDashboard(); show(3); });
+
+  $('#btnResOpen').addEventListener('click', () => lastUrl && go(lastUrl));
+  $('#btnResCopy').addEventListener('click', async () => {
     if (!lastUrl) return;
     try { await navigator.clipboard.writeText(lastUrl); toast('Enlace copiado', false); }
     catch { toast('No se pudo copiar'); }
   });
-  $('#btnDirectCode').addEventListener('click', () => { if (selected) openTvPanel(selected); });
-  $('#btnDirectBack').addEventListener('click', () => { renderDashboard(); show(3); });
+  $('#btnResBack').addEventListener('click', () => { renderDashboard(); show(3); });
 
-  /* ---------- panel TV ---------- */
-
-  function openTvPanel(p) {
-    selected = p;
-    const tv = $('#tvCode');
-    tv.value = '';
-    tv.maxLength = p.codeLength || 8;
-    tv.placeholder = `Código de ${p.codeLength || 8} caracteres`;
-    $('#btnActivate').disabled = true;
-    $('#tvTitle').textContent = p.name;
-    $('#tvLogo').innerHTML = `<img src="${esc(p.id)}.png" alt="🔑">`;
-    show(6);
-    tv.focus();
-  }
-
-  $('#btnReopen').addEventListener('click', () => {
-    if (selected?.tvUrl) go(selected.tvUrl);
-  });
-
-  $('#tvCode').addEventListener('input', e => {
-    e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    $('#btnActivate').disabled = e.target.value.length < 4;
-  });
-
-  $('#btnTvBack').addEventListener('click', () => { renderPlatforms(); show(4); });
-
-  $('#btnActivate').addEventListener('click', async () => {
-    const code = $('#tvCode').value.trim();
-    if (!selected || code.length < 4) return toast('Código incompleto');
-    await withBtn($('#btnActivate'), 'Activando…', async () => {
-      try {
-        const r = await api('/api/activate', { platform: selected.id, code }, { timeout: 45000 });
-        $('#resIcon').textContent = '✅';
-        $('#resTitle').textContent = 'Listo';
-        $('#resSub').textContent = 'Activación enviada';
-        $('#resLog').textContent = (r.steps || []).join('\n');
-        await loadMe();
-        show(7);
-      } catch (e) { toast(e.message); }
-    });
-  });
-
-  $('#btnAgain').addEventListener('click', () => { renderDashboard(); show(3); });
-
-  /* ---------- NFtoken (pantalla) ---------- */
+  /* ---------- NFtoken manual ---------- */
 
   $('#nfGo').addEventListener('click', () => withBtn($('#nfGo'), 'Generando…', async () => {
     const raw = $('#nfRaw').value.trim();
@@ -406,13 +362,13 @@
         <a class="lnk" href="${esc(r.url_tv)}" target="_blank" rel="noopener">📺 Activación TV</a>
         <a class="lnk" href="${esc(r.url_web)}" target="_blank" rel="noopener">🌐 Web</a>
         <a class="lnk" href="${esc(r.url_app)}" target="_blank" rel="noopener">📱 Móvil</a>`;
-      registrarToken('netflix-manual', r.url_tv);
+      registrarToken('manual', r.url_tv);
     } catch (e) { $('#nfOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; }
   }));
 
   $('#nfBack').addEventListener('click', () => show(volverA));
 
-  /* ---------- BIN (pantalla) ---------- */
+  /* ---------- BIN ---------- */
 
   $('#binIn').addEventListener('input', e => {
     e.target.value = e.target.value.replace(/\D/g, '').slice(0, 8);
