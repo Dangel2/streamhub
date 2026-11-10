@@ -95,17 +95,17 @@
 
   <section class="screen" data-screen="5" hidden>
     <div class="brand">
-      <div class="logo"><img src="netflix.png" alt="⚡"></div>
-      <h1>Abriendo Netflix</h1>
-      <p>Pantalla de activación por TV</p>
+      <div class="logo" id="directLogo"><img src="logo.png" alt="⚡"></div>
+      <h1 id="directTitle">Abriendo</h1>
+      <p id="directSub">Pantalla de activación por TV</p>
     </div>
     <div class="card">
       <div id="directBox" class="muted">Conectando…</div>
-      <pre id="directLog" class="log" hidden></pre>
       <div class="row" style="margin-top:14px">
         <button id="btnDirectOpen" class="btn btn-main" type="button" disabled>ABRIR DE NUEVO</button>
       </div>
       <button id="btnDirectCopy" class="btn btn-ghost wide" type="button" style="margin-top:10px" hidden>Copiar enlace</button>
+      <button id="btnDirectCode" class="btn btn-ghost wide" type="button" style="margin-top:10px" hidden>Pegar código de activación</button>
       <button id="btnDirectBack" class="btn btn-ghost wide" type="button" style="margin-top:10px">Volver</button>
     </div>
   </section>
@@ -156,7 +156,7 @@
 
   <section class="screen" data-screen="9" hidden>
     <div class="brand">
-      <div class="logo"><img src="logo.png" alt="💳"></div>
+      <div class="logo"><img src="bin.png" alt="💳"></div>
       <h1>Chequeador de BINs</h1>
       <p>Primeros 6 u 8 dígitos</p>
     </div>
