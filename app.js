@@ -1,6 +1,7 @@
 (() => {
   const API_BASE = 'https://plain-lab-68c3.tvs12202.workers.dev';
   const TIMEOUT = 25000;
+  const FALLBACK_AVATAR = 'logo.png';
 
   const $ = s => document.querySelector(s);
   const toastEl = $('#toast');
@@ -164,6 +165,23 @@
     }
   });
 
+  /* ---------- avatar ---------- */
+
+  function setAvatar(url) {
+    const av = $('#meAvatar');
+    av.innerHTML = '';
+    const img = document.createElement('img');
+    img.className = 'avatar-img';
+    img.alt = '';
+    img.decoding = 'async';
+    img.loading = 'lazy';
+    img.src = url || FALLBACK_AVATAR;
+    img.addEventListener('error', () => {
+      if (!img.src.endsWith(FALLBACK_AVATAR)) img.src = FALLBACK_AVATAR;
+    }, { once: true });
+    av.appendChild(img);
+  }
+
   /* ---------- dashboard ---------- */
 
   async function loadMe() {
@@ -175,13 +193,8 @@
   function renderDashboard() {
     if (!me) return;
     const nombre = me.first_name || me.username || 'Usuario';
-    const av = $('#meAvatar');
 
-    if (me.photo_url) {
-      av.innerHTML = `<img src="${esc(me.photo_url)}" alt="">`;
-    } else {
-      av.textContent = nombre.trim().charAt(0).toUpperCase() || '?';
-    }
+    setAvatar(me.photo_url);
 
     $('#meName').textContent = nombre;
     $('#meUser').textContent = me.username ? '@' + me.username : 'ID ' + me.tg;
@@ -268,11 +281,10 @@
     });
   }
 
-  /* ---------- acceso rápido ---------- */
+  /* ---------- acceso directo unificado ---------- */
 
   function quickAccess(p) {
-    if (p.id === 'netflix') return directNetflix();
-    openTvPanel(p, true);
+    directAccess(p);
   }
 
   function go(url) {
@@ -282,31 +294,49 @@
     else window.location.href = url;
   }
 
-  async function directNetflix() {
+  async function directAccess(p) {
+    selected = p;
+    lastUrl = '';
+
+    const logoBox = $('#directLogo');
+    logoBox.innerHTML = `<img src="${esc(p.id)}.png" alt="⚡" onerror="this.remove()">`;
+    $('#directTitle').textContent = 'Abriendo ' + p.name;
+    $('#directSub').textContent = 'Pantalla de activación por TV';
+
     show(5);
-    $('#directLog').hidden = true;
+
+    const box = $('#directBox');
+    box.className = 'muted';
+    box.textContent = 'Solicitando cookie activa y generando token…';
     $('#btnDirectOpen').disabled = true;
     $('#btnDirectCopy').hidden = true;
-    $('#directBox').textContent = 'Solicitando cookie activa y generando token…';
+    $('#btnDirectCode').hidden = true;
 
     try {
-      const r = await api('/api/nftoken', {});
+      const r = await api('/api/nftoken', { platform: p.id });
       lastUrl = r.url_tv;
-      $('#directBox').innerHTML =
-        `✅ Sesión generada<br><small class="muted">Caduca: ${esc(r.caduca)} · archivo ${esc(r.file)}</small>`;
-      $('#directLog').textContent = `tv:    ${r.url_tv}\nweb:   ${r.url_web}\nmóvil: ${r.url_app}`;
-      $('#directLog').hidden = false;
+      selected.tvUrl = r.url_tv;
+
+      const estado = r.caduca
+        ? `Sesión válida hasta ${esc(r.caduca)}`
+        : 'Sesión activa';
+
+      box.className = '';
+      box.innerHTML = `<div class="alert ok">✅ ¡Aprobada!<br><small class="muted">${estado}</small></div>`;
+
       $('#btnDirectOpen').disabled = false;
       $('#btnDirectCopy').hidden = false;
+      $('#btnDirectCode').hidden = false;
 
       setTimeout(() => {
         if (!$('#btnDirectOpen').disabled) go(r.url_tv);
       }, 1000);
 
-      registrarToken('netflix', r.url_tv);
+      registrarToken(p.id, r.url_tv);
       await loadMe();
     } catch (e) {
-      $('#directBox').textContent = '⚠️ ' + e.message;
+      box.className = 'muted';
+      box.textContent = '⚠️ ' + e.message;
       if (e.code === 'INACTIVE') setTimeout(() => { renderDashboard(); show(3); }, 1600);
     }
   }
@@ -317,11 +347,12 @@
     try { await navigator.clipboard.writeText(lastUrl); toast('Enlace copiado', false); }
     catch { toast('No se pudo copiar'); }
   });
+  $('#btnDirectCode').addEventListener('click', () => { if (selected) openTvPanel(selected); });
   $('#btnDirectBack').addEventListener('click', () => { renderDashboard(); show(3); });
 
   /* ---------- panel TV ---------- */
 
-  function openTvPanel(p, autoOpen = false) {
+  function openTvPanel(p) {
     selected = p;
     const tv = $('#tvCode');
     tv.value = '';
@@ -332,11 +363,6 @@
     $('#tvLogo').innerHTML = `<img src="${esc(p.id)}.png" alt="🔑">`;
     show(6);
     tv.focus();
-
-    if (autoOpen && p.tvUrl) {
-      registrarToken(p.id, p.tvUrl);
-      setTimeout(() => go(p.tvUrl), 900);
-    }
   }
 
   $('#btnReopen').addEventListener('click', () => {
