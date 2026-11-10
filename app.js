@@ -2,8 +2,74 @@
   const API_BASE = 'https://plain-lab-68c3.tvs12202.workers.dev';
   const TIMEOUT = 25000;
   const FALLBACK_AVATAR = 'logo.png';
+  const FALLBACK_LOGO = 'logo.png';
 
   const $ = s => document.querySelector(s);
+
+  function on(sel, ev, fn, opt) {
+    const el = document.querySelector(sel);
+    if (el) el.addEventListener(ev, fn, opt);
+    return el;
+  }
+
+  const LOGO_ALIAS = {
+    nf: 'netflix', hbo: 'max', hbomax: 'max', hbomaxbr: 'max',
+    disney: 'disneyplus', disneypluspremium: 'disneyplus',
+    paramountplus: 'paramount', paramountplusessential: 'paramount',
+    crunchy: 'crunchyroll', prime: 'primevideo', amazon: 'primevideo', appletv: 'primevideo'
+  };
+
+  const FALLBACK_ACT = {
+    netflix: 'https://www.netflix.com/tv2',
+    disneyplus: 'https://www.disneyplus.com/begin',
+    max: 'https://auth.max.com/',
+    primevideo: 'https://www.primevideo.com/activate',
+    paramount: 'https://www.paramountplus.com/activate/',
+    crunchyroll: 'https://www.crunchyroll.com/activate',
+    spotify: 'https://www.spotify.com/pair'
+  };
+
+  function slug(p) {
+    return String(p.id || p.name || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  }
+
+  function logoCandidatos(p) {
+    const k = slug(p);
+    const lista = [];
+    if (p.logo) lista.push(p.logo);
+    if (k) lista.push(k + '.png');
+    const alias = LOGO_ALIAS[k];
+    if (alias && alias !== k) lista.push(alias + '.png');
+    lista.push(FALLBACK_LOGO);
+    return [...new Set(lista)];
+  }
+
+  function logoImg(p, cls) {
+    const img = document.createElement('img');
+    if (cls) img.className = cls;
+    img.alt = '';
+    img.decoding = 'async';
+    const lista = logoCandidatos(p);
+    let i = 0;
+    img.src = lista[0];
+    img.addEventListener('error', () => {
+      i += 1;
+      if (i < lista.length) img.src = lista[i];
+      else img.remove();
+    });
+    return img;
+  }
+
+  function pintarLogo(cont, p) {
+    if (!cont) return;
+    cont.innerHTML = '';
+    const fb = document.createElement('span');
+    fb.className = 'fb';
+    fb.textContent = p.short || (p.name || '?').slice(0, 2).toUpperCase();
+    cont.appendChild(fb);
+    cont.appendChild(logoImg(p));
+  }
+
   const toastEl = $('#toast');
 
   if (!localStorage.getItem('dg_session') && sessionStorage.getItem('dg_session')) {
@@ -21,6 +87,7 @@
   let volverA = 3;
 
   function toast(msg, isErr = true) {
+    if (!toastEl) return;
     toastEl.textContent = msg;
     toastEl.className = 'toast' + (isErr ? ' err' : '');
     toastEl.hidden = false;
@@ -29,11 +96,17 @@
   }
 
   function show(n) {
-    document.querySelectorAll('.screen').forEach(s => {
-      s.hidden = s.dataset.screen !== String(n);
-    });
-    $('#topbar').hidden = ![3, 4, 5, 8, 9, 10].includes(Number(n));
+    const target = document.querySelector('.screen[data-screen="' + n + '"]');
+    if (!target) { toast('Pantalla ' + n + ' no disponible'); return; }
+    document.querySelectorAll('.screen').forEach(s => { s.hidden = s !== target; });
+    const tb = $('#topbar');
+    if (tb) tb.hidden = ![3, 4, 5, 8, 9, 10].includes(Number(n));
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function pantallaActual() {
+    const v = [...document.querySelectorAll('.screen')].find(s => !s.hidden);
+    return v ? Number(v.dataset.screen) : 0;
   }
 
   async function api(path, body, opt = {}) {
@@ -53,6 +126,7 @@
       if (!res.ok || data.ok === false) {
         const err = new Error(data.error || 'Error del servidor');
         err.code = data.code;
+        err.status = res.status;
         throw err;
       }
       return data;
@@ -64,6 +138,7 @@
   }
 
   async function withBtn(btn, label, fn) {
+    if (!btn) return fn();
     const old = btn.textContent;
     btn.disabled = true; btn.textContent = label;
     try { return await fn(); }
@@ -79,12 +154,13 @@
   }
 
   function esc(s) {
-    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   /* ---------- OTP ---------- */
 
   function wireOtp(container, onChange) {
+    if (!container) return { val: () => '', clear: () => {} };
     const inputs = [...container.querySelectorAll('input')];
     const val = () => inputs.map(i => i.value).join('');
     inputs.forEach((inp, i) => {
@@ -109,44 +185,47 @@
         inputs[Math.min(d.length, inputs.length - 1)].focus();
       });
     });
-    return { val, clear: () => { inputs.forEach(i => i.value = ''); inputs[0].focus(); } };
+    return { val, clear: () => { inputs.forEach(i => i.value = ''); inputs[0] && inputs[0].focus(); } };
   }
 
-  const otpLogin = wireOtp($('#otpLogin'), v => { $('#btnLogin').disabled = v.length !== 6; });
+  const otpLogin = wireOtp($('#otpLogin'), v => {
+    const b = $('#btnLogin');
+    if (b) b.disabled = v.length !== 6;
+  });
 
-  $('#tgId').addEventListener('input', e => {
+  on('#tgId', 'input', e => {
     e.target.value = e.target.value.replace(/\D/g, '').slice(0, 12);
   });
 
-  $('#btnSend').addEventListener('click', () => {
-    const id = $('#tgId').value.trim();
+  on('#btnSend', 'click', () => {
+    const id = ($('#tgId')?.value || '').trim();
     if (!/^\d{5,12}$/.test(id)) return toast('Ingresá un ID de Telegram válido');
     withBtn($('#btnSend'), '…', async () => {
       try {
         const r = await api('/api/otp', { tg: id }, { auth: false });
         otpToken = r.token; tgId = id;
-        $('#tgIdShow').value = id;
+        if ($('#tgIdShow')) $('#tgIdShow').value = id;
         otpLogin.clear();
-        $('#btnLogin').disabled = true;
+        if ($('#btnLogin')) $('#btnLogin').disabled = true;
         show(2);
         toast('Código enviado a tu Telegram', false);
       } catch (e) { toast(e.message); }
     });
   });
 
-  $('#btnResend').addEventListener('click', () => {
+  on('#btnResend', 'click', () => {
     if (!tgId) return show(1);
     withBtn($('#btnResend'), 'Enviando…', async () => {
       try {
         const r = await api('/api/otp', { tg: tgId }, { auth: false });
         otpToken = r.token; otpLogin.clear();
-        $('#btnLogin').disabled = true;
+        if ($('#btnLogin')) $('#btnLogin').disabled = true;
         toast('Código reenviado', false);
       } catch (e) { toast(e.message); }
     });
   });
 
-  $('#btnLogin').addEventListener('click', async () => {
+  on('#btnLogin', 'click', async () => {
     const code = otpLogin.val();
     if (code.length !== 6) return toast('El código tiene 6 dígitos');
     try {
@@ -155,13 +234,13 @@
       localStorage.setItem('dg_session', session);
       otpLogin.clear();
       me = r.user;
-      await loadPlatforms();
+      await cargarPlataformas();
       renderDashboard();
       show(3);
     } catch (e) {
       toast(e.message);
       otpLogin.clear();
-      $('#btnLogin').disabled = true;
+      if ($('#btnLogin')) $('#btnLogin').disabled = true;
     }
   });
 
@@ -169,6 +248,7 @@
 
   function setAvatar(url) {
     const av = $('#meAvatar');
+    if (!av) return;
     av.innerHTML = '';
     const img = document.createElement('img');
     img.className = 'avatar-img';
@@ -196,28 +276,34 @@
 
     setAvatar(me.photo_url);
 
-    $('#meName').textContent = nombre;
-    $('#meUser').textContent = me.username ? '@' + me.username : 'ID ' + me.tg;
-    $('#dwName').textContent = nombre;
-    $('#dwStatus').textContent = me.status === 'active' ? '🟢 Activo' : '🔴 Sin permiso';
+    if ($('#meName')) $('#meName').textContent = nombre;
+    if ($('#meUser')) $('#meUser').textContent = me.username ? '@' + me.username : 'ID ' + me.tg;
+    if ($('#dwName')) $('#dwName').textContent = nombre;
+    if ($('#dwStatus')) $('#dwStatus').textContent = me.status === 'active' ? '🟢 Activo' : '🔴 Sin permiso';
 
     const st = $('#meStatus');
-    st.className = 'pill ' + (me.status === 'active' ? 'ok' : 'bad');
-    st.textContent = me.status === 'active' ? '🟢 Activo' : '🔴 Inactivo';
+    if (st) {
+      st.className = 'pill ' + (me.status === 'active' ? 'ok' : 'bad');
+      st.textContent = me.status === 'active' ? '🟢 Activo' : '🔴 Inactivo';
+    }
 
     const alerta = $('#meAlert');
-    if (me.status === 'active') alerta.hidden = true;
-    else {
-      alerta.hidden = false;
-      alerta.textContent = '⏳ Tu cuenta espera aprobación del administrador. Hasta entonces no podés usar las plataformas.';
+    if (alerta) {
+      if (me.status === 'active') alerta.hidden = true;
+      else {
+        alerta.hidden = false;
+        alerta.textContent = '⏳ Tu cuenta espera aprobación del administrador. Hasta entonces no podés usar las plataformas.';
+      }
     }
 
     const entradas = Object.entries(me.usage || {})
       .filter(([p, v]) => v > 0 && platforms.some(x => x.id === p));
 
-    $('#meUsage').innerHTML = entradas.length
-      ? entradas.map(([p, v]) => `<div class="usage-item"><b>${esc(platformName(p))}</b><span>${v}</span></div>`).join('')
-      : '<div class="muted">Sin consumos registrados</div>';
+    if ($('#meUsage')) {
+      $('#meUsage').innerHTML = entradas.length
+        ? entradas.map(([p, v]) => `<div class="usage-item"><b>${esc(platformName(p))}</b><span>${v}</span></div>`).join('')
+        : '<div class="muted">Sin consumos registrados</div>';
+    }
   }
 
   function platformName(id) {
@@ -225,12 +311,12 @@
     return p ? p.name : id;
   }
 
-  $('#btnRefresh').addEventListener('click', () => withBtn($('#btnRefresh'), '…', async () => {
-    try { await loadPlatforms(); await loadMe(); toast('Datos actualizados', false); }
+  on('#btnRefresh', 'click', () => withBtn($('#btnRefresh'), '…', async () => {
+    try { await cargarPlataformas(); await loadMe(); toast('Datos actualizados', false); }
     catch (e) { toast(e.message); }
   }));
 
-  $('#btnGoPlats').addEventListener('click', async () => {
+  on('#btnGoPlats', 'click', async () => {
     if (!me) return;
     if (me.status !== 'active') return toast('Tu cuenta espera aprobación del administrador');
     await renderPlatforms();
@@ -239,23 +325,41 @@
 
   /* ---------- plataformas ---------- */
 
-  async function loadPlatforms() {
+  function parsearPlataformas(texto) {
+    const t = String(texto || '').trim();
+    if (!t) return [];
+    try {
+      const d = JSON.parse(t);
+      return Array.isArray(d) ? d : (Array.isArray(d.platforms) ? d.platforms : []);
+    } catch {}
+    try {
+      const fn = new Function(t + '; return typeof PLATFORMS !== "undefined" ? PLATFORMS : null;');
+      const d = fn();
+      return Array.isArray(d) ? d : [];
+    } catch {}
+    return [];
+  }
+
+  async function cargarPlataformas() {
     try {
       const r = await api('/api/platforms', {}, { method: 'GET' });
-      platforms = Array.isArray(r.platforms) ? r.platforms : [];
-    } catch {
-      try {
-        const res = await fetch('platforms.json', { cache: 'no-store' });
-        const d = await res.json();
-        platforms = Array.isArray(d.platforms) ? d.platforms : [];
-      } catch { platforms = []; }
-    }
+      if (Array.isArray(r.platforms) && r.platforms.length) {
+        platforms = r.platforms;
+        return;
+      }
+    } catch {}
+
+    try {
+      const res = await fetch('platforms.json', { cache: 'no-store' });
+      platforms = parsearPlataformas(await res.text());
+    } catch { platforms = []; }
   }
 
   async function renderPlatforms() {
     const box = $('#plats');
+    if (!box) return;
     box.innerHTML = '<span class="muted">Cargando…</span>';
-    await loadPlatforms();
+    await cargarPlataformas();
 
     if (!platforms.length) {
       box.innerHTML = '<div class="muted">El administrador no tiene plataformas habilitadas.</div>';
@@ -266,111 +370,148 @@
     platforms.forEach(p => {
       const el = document.createElement('div');
       el.className = 'plat';
-      el.innerHTML = `<div class="ic" style="background:${esc(p.color)}">
-          <span>${esc(p.short)}</span>
-          <img src="${esc(p.id)}.png" alt="" onerror="this.remove()">
-        </div>
-        <div class="txt"><b></b><small>⚡ Acceso directo</small></div>
-        <div class="radio">›</div>`;
-      el.querySelector('b').textContent = p.name;
+
+      const ic = document.createElement('div');
+      ic.className = 'ic';
+      ic.style.background = p.color || '#7c3aed';
+      pintarLogo(ic, p);
+
+      const txt = document.createElement('div');
+      txt.className = 'txt';
+      const b = document.createElement('b');
+      b.textContent = p.name;
+      const small = document.createElement('small');
+      small.textContent = '⚡ Acceso directo';
+      txt.append(b, small);
+
+      const radio = document.createElement('div');
+      radio.className = 'radio';
+      radio.textContent = '›';
+
+      el.append(ic, txt, radio);
       el.addEventListener('click', () => {
-        if (me.status !== 'active') return toast('Tu cuenta espera aprobación del administrador');
-        quickAccess(p);
+        if (me && me.status !== 'active') return toast('Tu cuenta espera aprobación del administrador');
+        directAccess(p);
       });
       box.appendChild(el);
     });
   }
 
-  /* ---------- acceso directo a la web oficial de activación ---------- */
-
-  function quickAccess(p) {
-    directAccess(p);
-  }
+  /* ---------- acceso directo ---------- */
 
   function go(url) {
+    if (!url) return toast('No hay enlace de activación');
     const bridge = window.AndroidBridge || window.webkit?.messageHandlers?.dgflix;
     if (bridge && typeof bridge.openUrl === 'function') bridge.openUrl(url);
     else if (bridge && typeof bridge.postMessage === 'function') bridge.postMessage(JSON.stringify({ action: 'open', url }));
     else window.location.href = url;
   }
 
+  function normalizar(r) {
+    return {
+      url: r.url_tv || r.urlTv || r.tv || r.activation_url || r.link || r.url || '',
+      caduca: r.caduca || r.expira || r.expires || r.expiry || '',
+      file: r.file || r.archivo || r.session_file || ''
+    };
+  }
+
   async function directAccess(p) {
     selected = p;
     lastUrl = '';
 
-    $('#directLogo').innerHTML = `<img src="${esc(p.id)}.png" alt="⚡" onerror="this.remove()">`;
-    $('#directTitle').textContent = 'Abriendo ' + p.name;
-    $('#directSub').textContent = 'Activación oficial por TV';
-    $('#directBox').className = 'muted';
-    $('#directBox').textContent = 'Tomando una cookie del pool y generando sesión…';
+    pintarLogo($('#directLogo'), p);
+    if ($('#directTitle')) $('#directTitle').textContent = 'Abriendo ' + p.name;
+    if ($('#directSub')) $('#directSub').textContent = 'Activación oficial por TV';
+
+    const box = $('#directBox');
+    if (box) {
+      box.className = 'muted';
+      box.textContent = 'Tomando una cookie del pool y generando sesión…';
+    }
     show(5);
 
     try {
-      const r = await api('/api/nftoken', { platform: p.id });
+      const r = await api('/api/nftoken', {
+        platform: p.id,
+        id: p.id,
+        slug: slug(p),
+        name: p.name
+      });
 
-      if (!r.url_tv) throw new Error('El administrador no configuró la URL de activación de esta plataforma');
+      const d = normalizar(r);
+      lastUrl = d.url || FALLBACK_ACT[slug(p)] || '';
 
-      lastUrl = r.url_tv;
-      pintarResultado(p, r);
-      registrarToken(p.id, r.url_tv);
+      if (!lastUrl) throw new Error('El administrador no configuró la URL de activación de esta plataforma');
+
+      pintarResultado(p, d, !d.url);
+      registrarToken(p.id, lastUrl);
       loadMe().catch(() => {});
 
-      setTimeout(() => { if (lastUrl) go(lastUrl); }, 1000);
+      setTimeout(() => { if (lastUrl) go(lastUrl); }, 1100);
     } catch (e) {
-      $('#directBox').className = '';
-      $('#directBox').innerHTML = `<div class="alert bad">⚠️ ${esc(e.message)}</div>`;
-      if (e.code === 'INACTIVE') setTimeout(() => { renderDashboard(); show(3); }, 1700);
+      if (box) {
+        box.className = '';
+        box.innerHTML = `<div class="alert bad">⚠️ ${esc(e.message)}</div>`;
+      }
+      if (e.code === 'INACTIVE') setTimeout(() => { renderDashboard(); show(3); }, 1800);
     }
   }
 
-  function pintarResultado(p, r) {
+  function pintarResultado(p, d, esRespaldo) {
     const card = $('#resCard');
-    card.style.setProperty('--accent', p.color || '#22c55e');
+    if (card) card.style.setProperty('--accent', p.color || '#22c55e');
 
-    const logo = $('#resLogo');
-    logo.innerHTML = `<span class="fb">${esc(p.short || '')}</span>
-      <img src="${esc(p.id)}.png" alt="" onerror="this.remove()">`;
+    pintarLogo($('#resLogo'), p);
 
-    $('#resPlat').textContent = p.name;
-    $('#resEstado').textContent = '✅ Sesión generada';
-    $('#resCaduca').textContent = r.caduca || 'Sin fecha de caducidad';
-    $('#resFile').textContent = r.file || 'archivo de sesión';
-    $('#resDestino').textContent = 'Te estamos llevando a la activación oficial…';
+    if ($('#resPlat')) $('#resPlat').textContent = p.name;
+    if ($('#resEstado')) $('#resEstado').textContent = '✅ Sesión iniciada correctamente';
+    if ($('#resCaduca')) $('#resCaduca').textContent = d.caduca || 'Sin fecha de caducidad';
+    if ($('#resFile')) $('#resFile').textContent = d.file || 'archivo de sesión';
+    if ($('#resDestino')) {
+      $('#resDestino').textContent = esRespaldo
+        ? 'Te llevamos a la página oficial de activación.'
+        : 'Te estamos llevando a la activación oficial…';
+    }
 
     show(10);
   }
 
-  $('#btnDirectBack').addEventListener('click', () => { renderDashboard(); show(3); });
-
-  $('#btnResOpen').addEventListener('click', () => lastUrl && go(lastUrl));
-  $('#btnResCopy').addEventListener('click', async () => {
+  on('#btnDirectBack', 'click', () => { renderDashboard(); show(3); });
+  on('#btnResOpen', 'click', () => go(lastUrl));
+  on('#btnResCopy', 'click', async () => {
     if (!lastUrl) return;
     try { await navigator.clipboard.writeText(lastUrl); toast('Enlace copiado', false); }
     catch { toast('No se pudo copiar'); }
   });
-  $('#btnResBack').addEventListener('click', () => { renderDashboard(); show(3); });
+  on('#btnResRetry', 'click', () => { if (selected) directAccess(selected); });
+  on('#btnResBack', 'click', () => { renderDashboard(); show(3); });
 
   /* ---------- NFtoken manual ---------- */
 
-  $('#nfGo').addEventListener('click', () => withBtn($('#nfGo'), 'Generando…', async () => {
-    const raw = $('#nfRaw').value.trim();
+  on('#nfGo', 'click', () => withBtn($('#nfGo'), 'Generando…', async () => {
+    const raw = ($('#nfRaw')?.value || '').trim();
     if (!raw) return toast('Pegá una cookie');
     try {
       const r = await api('/api/nftoken', { cookie: raw });
-      $('#nfOut').innerHTML = `
-        <div class="alert ok">Caduca: ${esc(r.caduca)}</div>
-        <a class="lnk" href="${esc(r.url_tv)}" target="_blank" rel="noopener">📺 Activación TV</a>
-        <a class="lnk" href="${esc(r.url_web)}" target="_blank" rel="noopener">🌐 Web</a>
-        <a class="lnk" href="${esc(r.url_app)}" target="_blank" rel="noopener">📱 Móvil</a>`;
-      registrarToken('manual', r.url_tv);
-    } catch (e) { $('#nfOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`; }
+      const d = normalizar(r);
+      if ($('#nfOut')) {
+        $('#nfOut').innerHTML = `
+          <div class="alert ok">Caduca: ${esc(d.caduca || '—')}</div>
+          ${d.url ? `<a class="lnk" href="${esc(d.url)}" target="_blank" rel="noopener">📺 Activación TV</a>` : ''}
+          ${r.url_web ? `<a class="lnk" href="${esc(r.url_web)}" target="_blank" rel="noopener">🌐 Web</a>` : ''}
+          ${r.url_app ? `<a class="lnk" href="${esc(r.url_app)}" target="_blank" rel="noopener">📱 Móvil</a>` : ''}`;
+      }
+      if (d.url) registrarToken('manual', d.url);
+    } catch (e) {
+      if ($('#nfOut')) $('#nfOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`;
+    }
   }));
 
-  $('#nfBack').addEventListener('click', () => show(volverA));
+  on('#nfBack', 'click', () => show(volverA));
 
   /* ---------- BIN ---------- */
 
-  $('#binIn').addEventListener('input', e => {
+  on('#binIn', 'input', e => {
     e.target.value = e.target.value.replace(/\D/g, '').slice(0, 8);
   });
 
@@ -378,11 +519,12 @@
     return `<tr><th>${esc(etiqueta)}</th><td>${valor || '—'}</td></tr>`;
   }
 
-  $('#binGo').addEventListener('click', () => withBtn($('#binGo'), '…', async () => {
-    const bin = $('#binIn').value.trim();
+  on('#binGo', 'click', () => withBtn($('#binGo'), '…', async () => {
+    const bin = ($('#binIn')?.value || '').trim();
     if (bin.length < 6) return toast('El BIN necesita al menos 6 dígitos');
 
-    $('#binOut').innerHTML = '<div class="muted">Consultando…</div>';
+    if ($('#binOut')) $('#binOut').innerHTML = '<div class="muted">Consultando…</div>';
+
     let d = null;
     try {
       const r = await fetch('https://lookup.binlist.net/' + bin, { headers: { 'Accept-Version': '3' } });
@@ -394,7 +536,7 @@
         const r = await api('/api/bin?bin=' + bin, {}, { method: 'GET' });
         d = r.data;
       } catch (e) {
-        $('#binOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`;
+        if ($('#binOut')) $('#binOut').innerHTML = `<div class="alert bad">${esc(e.message)}</div>`;
         return;
       }
     }
@@ -402,50 +544,56 @@
     const c = d.country || {};
     const b = d.bank || {};
     const bandera = c.alpha2
-      ? `<img class="flag" src="https://flagcdn.com/w40/${esc(c.alpha2.toLowerCase())}.png" alt="${esc(c.emoji || '')}" onerror="this.remove()"> ${esc(c.emoji || '')}`
+      ? `<img class="flag" src="https://flagcdn.com/w40/${esc(String(c.alpha2).toLowerCase())}.png" alt="" onerror="this.remove()"> ${esc(c.emoji || '')}`
       : (esc(c.emoji || '—'));
 
-    $('#binOut').innerHTML = `
-      <table class="mini">
-        ${fila('BIN', esc(bin))}
-        ${fila('Marca', esc(d.scheme))}
-        ${fila('Red / nivel', esc(d.brand))}
-        ${fila('Tipo', esc(d.type))}
-        ${fila('Prepaga', d.prepaid === true ? 'Sí' : d.prepaid === false ? 'No' : '—')}
-        ${fila('País', `${bandera} ${esc(c.name || '')}`)}
-        ${fila('Código país', esc(c.alpha2))}
-        ${fila('Numérico', esc(c.numeric))}
-        ${fila('Moneda', esc(c.currency))}
-        ${fila('Latitud', esc(c.latitude))}
-        ${fila('Longitud', esc(c.longitude))}
-        ${fila('Banco', esc(b.name))}
-        ${fila('Web del banco', b.url ? `<a class="lnk-in" href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.url)}</a>` : '—')}
-        ${fila('Teléfono', esc(b.phone))}
-        ${fila('Ciudad', esc(b.city))}
-      </table>
-      <h4 class="sec" style="margin-top:16px">Respuesta completa</h4>
-      <pre class="log">${esc(JSON.stringify(d, null, 2))}</pre>`;
+    if ($('#binOut')) {
+      $('#binOut').innerHTML = `
+        <table class="mini">
+          ${fila('BIN', esc(bin))}
+          ${fila('Marca', esc(d.scheme))}
+          ${fila('Red / nivel', esc(d.brand))}
+          ${fila('Tipo', esc(d.type))}
+          ${fila('Prepaga', d.prepaid === true ? 'Sí' : d.prepaid === false ? 'No' : '—')}
+          ${fila('País', `${bandera} ${esc(c.name || '')}`)}
+          ${fila('Código país', esc(c.alpha2))}
+          ${fila('Numérico', esc(c.numeric))}
+          ${fila('Moneda', esc(c.currency))}
+          ${fila('Latitud', esc(c.latitude))}
+          ${fila('Longitud', esc(c.longitude))}
+          ${fila('Banco', esc(b.name))}
+          ${fila('Web del banco', b.url ? `<a class="lnk-in" href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.url)}</a>` : '—')}
+          ${fila('Teléfono', esc(b.phone))}
+          ${fila('Ciudad', esc(b.city))}
+        </table>
+        <h4 class="sec" style="margin-top:16px">Respuesta completa</h4>
+        <pre class="log">${esc(JSON.stringify(d, null, 2))}</pre>`;
+    }
   }));
 
-  $('#binBack').addEventListener('click', () => show(volverA));
+  on('#binBack', 'click', () => show(volverA));
 
   /* ---------- drawer ---------- */
 
   function openDrawer() {
-    $('#drawer').hidden = false;
-    $('#scrim').hidden = false;
-    requestAnimationFrame(() => $('#drawer').classList.add('open'));
+    const dr = $('#drawer'), sc = $('#scrim');
+    if (!dr) return;
+    dr.hidden = false;
+    if (sc) sc.hidden = false;
+    requestAnimationFrame(() => dr.classList.add('open'));
   }
   function closeDrawer() {
-    $('#drawer').classList.remove('open');
-    setTimeout(() => { $('#drawer').hidden = true; $('#scrim').hidden = true; }, 180);
+    const dr = $('#drawer'), sc = $('#scrim');
+    if (!dr) return;
+    dr.classList.remove('open');
+    setTimeout(() => { dr.hidden = true; if (sc) sc.hidden = true; }, 180);
   }
 
-  $('#btnMenu').addEventListener('click', openDrawer);
-  $('#dwClose').addEventListener('click', closeDrawer);
-  $('#scrim').addEventListener('click', closeDrawer);
-  $('#btnHome').addEventListener('click', () => { renderDashboard(); show(3); });
-  $('#dwLogout').addEventListener('click', async () => {
+  on('#btnMenu', 'click', openDrawer);
+  on('#dwClose', 'click', closeDrawer);
+  on('#scrim', 'click', closeDrawer);
+  on('#btnHome', 'click', () => { renderDashboard(); show(3); });
+  on('#dwLogout', 'click', async () => {
     try { await api('/api/logout', {}); } catch {}
     logout();
   });
@@ -453,16 +601,22 @@
   document.querySelectorAll('.drawer-nav button').forEach(b => {
     b.addEventListener('click', () => {
       const destino = b.dataset.panel;
+      if (!destino) return;
+
       document.querySelectorAll('.drawer-nav button').forEach(x => x.classList.remove('on'));
       b.classList.add('on');
 
-      if (destino === 'nftoken' || destino === 'bin') {
-        volverA = document.querySelector('[data-screen="3"]').hidden ? 4 : 3;
-        closeDrawer();
-        show(destino === 'nftoken' ? 8 : 9);
-        return;
-      }
-      panels[destino]();
+      const actual = pantallaActual();
+      volverA = (actual === 3 || actual === 4) ? actual : 3;
+
+      closeDrawer();
+
+      if (destino === 'nftoken') return show(8);
+      if (destino === 'bin') return show(9);
+
+      const panel = panels[destino];
+      if (typeof panel === 'function') panel();
+      else toast('Panel no disponible');
     });
   });
 
@@ -471,6 +625,7 @@
   const panels = {
     async cookies() {
       const box = $('#dwPanel');
+      if (!box) return;
       box.innerHTML = '<div class="muted">Cargando…</div>';
       const filas = [];
       for (const p of platforms) {
@@ -493,6 +648,7 @@
 
     tokens() {
       const box = $('#dwPanel');
+      if (!box) return;
       const lista = JSON.parse(localStorage.getItem('dg_tokens') || '[]').slice(-25).reverse();
       box.innerHTML = `
         <h4>Tokens generados</h4>
@@ -512,20 +668,23 @@
         try { await navigator.clipboard.writeText(b.dataset.copy); toast('Copiado', false); } catch { toast('No se pudo copiar'); }
       }));
       box.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => go(b.dataset.open)));
-      $('#tkClear').addEventListener('click', () => { localStorage.removeItem('dg_tokens'); panels.tokens(); });
+      const cl = $('#tkClear');
+      if (cl) cl.addEventListener('click', () => { localStorage.removeItem('dg_tokens'); panels.tokens(); });
     }
   };
 
   function registrarToken(platform, url) {
-    const lista = JSON.parse(localStorage.getItem('dg_tokens') || '[]');
-    lista.push({ platform, url, ts: Date.now() });
-    localStorage.setItem('dg_tokens', JSON.stringify(lista.slice(-60)));
+    try {
+      const lista = JSON.parse(localStorage.getItem('dg_tokens') || '[]');
+      lista.push({ platform, url, ts: Date.now() });
+      localStorage.setItem('dg_tokens', JSON.stringify(lista.slice(-60)));
+    } catch {}
   }
 
   (async () => {
     if (!session) return show(1);
     try {
-      await loadPlatforms();
+      await cargarPlataformas();
       await loadMe();
       show(3);
     } catch {
